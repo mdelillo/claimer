@@ -73,7 +73,7 @@ var _ = Describe("Claimer", func() {
 
 		By("Claiming a pool")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", BOT_ID), apiToken)
-		Eventually(func() string { return latestSlackMessage(apiToken) }).Should(Equal("Claimed pool-1"))
+		Eventually(func() string { return latestSlackMessage(apiToken) }, "10s").Should(Equal("Claimed pool-1"))
 		Eventually(func() error { return repo.Pull(&git.PullOptions{}) }, "10s").Should(Succeed())
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "resource-a")).To(BeARegularFile())
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "resource-a")).To(BeARegularFile())
