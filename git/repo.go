@@ -12,7 +12,7 @@ import (
 )
 
 type repo struct {
-	Dir string
+	dir string
 }
 
 func NewRepo(url, deployKey string) (*repo, error) {
@@ -37,7 +37,11 @@ func NewRepo(url, deployKey string) (*repo, error) {
 		return nil, fmt.Errorf("failed to clone repo: %s", err)
 	}
 
-	return &repo{Dir: dir}, nil
+	return &repo{dir: dir}, nil
+}
+
+func (r *repo) Dir() string {
+	return r.dir
 }
 
 func (r *repo) CommitAndPush(message string) error {
@@ -55,6 +59,6 @@ func (r *repo) CommitAndPush(message string) error {
 
 func (r *repo) run(args ...string) ([]byte, error) {
 	cmd := exec.Command("git", args...)
-	cmd.Dir = r.Dir
+	cmd.Dir = r.Dir()
 	return cmd.CombinedOutput()
 }

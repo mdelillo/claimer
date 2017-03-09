@@ -48,17 +48,17 @@ func claim(resource, repoUrl, deployKey string) {
 	if err != nil {
 		panic(err)
 	}
-	defer fs.Rm(repo.Dir)
+	defer fs.Rm(repo.Dir())
 
-	files, err := fs.Ls(filepath.Join(repo.Dir, resource, "unclaimed"))
+	files, err := fs.Ls(filepath.Join(repo.Dir(), resource, "unclaimed"))
 	if err != nil {
 		panic(err)
 	}
 
 	for _, file := range files {
 		if file != ".gitkeep" {
-			oldPath := filepath.Join(repo.Dir, resource, "unclaimed", file)
-			newPath := filepath.Join(repo.Dir, resource, "claimed", file)
+			oldPath := filepath.Join(repo.Dir(), resource, "unclaimed", file)
+			newPath := filepath.Join(repo.Dir(), resource, "claimed", file)
 			if err := fs.Mv(oldPath, newPath); err != nil {
 				panic(err)
 			}

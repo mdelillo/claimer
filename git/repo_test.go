@@ -17,9 +17,9 @@ var _ = Describe("Repo", func() {
 		It("clones public repos without authorization", func() {
 			repo, err := git.NewRepo("https://github.com/octocat/Hello-World", "")
 			Expect(err).NotTo(HaveOccurred())
-			defer os.RemoveAll(repo.Dir)
+			defer os.RemoveAll(repo.Dir())
 
-			Expect(runGitCommand(repo.Dir, "status")).To(ContainSubstring("working tree clean"))
+			Expect(runGitCommand(repo.Dir(), "status")).To(ContainSubstring("working tree clean"))
 		})
 
 		It("clones private repos using an SSH key", func() {
@@ -28,9 +28,9 @@ var _ = Describe("Repo", func() {
 
 			repo, err := git.NewRepo(repoUrl, deployKey)
 			Expect(err).NotTo(HaveOccurred())
-			defer os.RemoveAll(repo.Dir)
+			defer os.RemoveAll(repo.Dir())
 
-			Expect(runGitCommand(repo.Dir, "status")).To(ContainSubstring("working tree clean"))
+			Expect(runGitCommand(repo.Dir(), "status")).To(ContainSubstring("working tree clean"))
 		})
 
 		Context("when the SSH key is invalid", func() {
@@ -74,11 +74,11 @@ var _ = Describe("Repo", func() {
 
 			repo, err := git.NewRepo("file://"+gitRemoteDir, "")
 			Expect(err).NotTo(HaveOccurred())
-			defer os.RemoveAll(repo.Dir)
-			Expect(ioutil.WriteFile(filepath.Join(repo.Dir, newFileName), nil, 0644)).To(Succeed())
+			defer os.RemoveAll(repo.Dir())
+			Expect(ioutil.WriteFile(filepath.Join(repo.Dir(), newFileName), nil, 0644)).To(Succeed())
 
 			Expect(repo.CommitAndPush(commitMessage)).To(Succeed())
-			commit := runGitCommand(repo.Dir, "log", "origin/master", "-1", "--name-only", "--format='%s'")
+			commit := runGitCommand(repo.Dir(), "log", "origin/master", "-1", "--name-only", "--format='%s'")
 			Expect(commit).To(Equal(fmt.Sprintf("'%s'\n\n%s\n", commitMessage, newFileName)))
 		})
 
@@ -86,7 +86,7 @@ var _ = Describe("Repo", func() {
 			It("returns an error", func() {
 				repo, err := git.NewRepo("file://"+gitRemoteDir, "")
 				Expect(err).NotTo(HaveOccurred())
-				defer os.RemoveAll(repo.Dir)
+				defer os.RemoveAll(repo.Dir())
 
 				err = repo.CommitAndPush("some-commit-message")
 				Expect(err).To(MatchError(MatchRegexp("(?s:failed to commit: .*nothing to commit)")))
@@ -97,9 +97,9 @@ var _ = Describe("Repo", func() {
 			It("returns an error", func() {
 				repo, err := git.NewRepo("file://"+gitRemoteDir, "")
 				Expect(err).NotTo(HaveOccurred())
-				defer os.RemoveAll(repo.Dir)
-				Expect(ioutil.WriteFile(filepath.Join(repo.Dir, "some-new-file"), nil, 0644)).To(Succeed())
-				runGitCommand(repo.Dir, "remote", "remove", "origin")
+				defer os.RemoveAll(repo.Dir())
+				Expect(ioutil.WriteFile(filepath.Join(repo.Dir(), "some-new-file"), nil, 0644)).To(Succeed())
+				runGitCommand(repo.Dir(), "remote", "remove", "origin")
 
 				err = repo.CommitAndPush("some-commit-message")
 				Expect(err).To(MatchError(MatchRegexp("(?s:failed to push: .*'origin' does not appear to be a git repository)")))
