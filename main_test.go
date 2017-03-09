@@ -27,10 +27,8 @@ var _ = Describe("Claimer", func() {
 	BeforeSuite(func() {
 		var err error
 
-		gitDir, err = ioutil.TempDir("", "claimer")
+		gitDir, err = ioutil.TempDir("", "claimer-integration-tests")
 		Expect(err).NotTo(HaveOccurred())
-
-		resetClaimerTestPool(gitDir)
 
 		claimer, err = gexec.Build(filepath.Join("github.com", "mdelillo", "claimer"))
 		Expect(err).NotTo(HaveOccurred())
@@ -50,7 +48,7 @@ var _ = Describe("Claimer", func() {
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = git.PlainClone(gitDir, false, &git.CloneOptions{
+		repo, err := git.PlainClone(gitDir, false, &git.CloneOptions{
 			URL: repoUrl,
 			Auth: &gitssh.PublicKeys{
 				User:   "git",
@@ -58,6 +56,8 @@ var _ = Describe("Claimer", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		resetClaimerTestPool(gitDir)
 
 		claimerCommand := exec.Command(
 			claimer,
@@ -71,11 +71,13 @@ var _ = Describe("Claimer", func() {
 		// @claimer status
 		// assert about initial status
 
+		By("Claiming a pool")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", BOT_ID), apiToken)
-		Eventually(func() string {
-			return latestSlackMessage(apiToken)
-		}).Should(Equal("Claimed pool-1"))
-		// assert about repo
+		Eventually(func() string { return latestSlackMessage(apiToken) }).Should(Equal("Claimed pool-1"))
+		Eventually(func() error { return repo.Pull(&git.PullOptions{}) }, "10s").Should(Succeed())
+		Expect(filepath.Join(gitDir, "pool-1", "claimed", "resource-a")).To(BeARegularFile())
+		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "resource-a")).To(BeARegularFile())
+
 		// @claimer status
 		// assert about status
 
@@ -170,6 +172,15 @@ func latestSlackMessage(apiToken string) string {
 	return slackResponse.Messages[0].Text
 }
 
-func resetClaimerTestPool(_ string) {
-	// TODO
+func resetClaimerTestPool(gitDir string) {
+	runGitCommand(gitDir, "checkout", "master")
+	runGitCommand(gitDir, "reset", "--hard", "initial-state")
+	runGitCommand(gitDir, "push", "--force", "origin", "master")
+
+}
+
+func runGitCommand(gitDir string, args ...string) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = gitDir
+	Expect(cmd.Run()).To(Succeed())
 }
