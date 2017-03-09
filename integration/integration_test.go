@@ -33,7 +33,6 @@ var _ = Describe("Claimer", func() {
 
 	AfterSuite(func() {
 		gexec.CleanupBuildArtifacts()
-		resetClaimerTestPool(gitDir)
 		os.RemoveAll(gitDir)
 	})
 
@@ -106,6 +105,8 @@ var _ = Describe("Claimer", func() {
 		// assert about status
 
 		session.Terminate().Wait()
+
+		resetClaimerTestPool(gitDir)
 	})
 
 })
