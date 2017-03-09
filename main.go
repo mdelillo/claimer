@@ -43,7 +43,10 @@ func main() {
 }
 
 func claim(resource, repoUrl, deployKey string) {
-	repo := git.NewRepo(repoUrl, deployKey)
+	repo, err := git.NewRepo(repoUrl, deployKey)
+	if err != nil {
+		panic(err)
+	}
 	defer os.RemoveAll(repo.Dir)
 
 	files, err := ioutil.ReadDir(filepath.Join(repo.Dir, resource, "unclaimed"))
