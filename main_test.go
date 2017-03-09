@@ -179,8 +179,8 @@ func resetClaimerTestPool(gitDir string) {
 
 }
 
-func runGitCommand(gitDir string, args ...string) {
+func runGitCommand(dir string, args ...string) {
 	cmd := exec.Command("git", args...)
-	cmd.Dir = gitDir
-	Expect(cmd.Run()).To(Succeed())
+	cmd.Dir = dir
+	ExpectWithOffset(1, cmd.Run()).To(Succeed())
 }

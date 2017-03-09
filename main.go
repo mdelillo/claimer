@@ -1,17 +1,13 @@
 package main
 
 import (
-	"strings"
-
 	"flag"
+	"github.com/mdelillo/claimer/git"
 	"github.com/mdelillo/claimer/slack"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"srcd.works/go-git.v4"
-	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
+	"strings"
 )
 
 func main() {
@@ -47,37 +43,18 @@ func main() {
 }
 
 func claim(resource, repoUrl, deployKey string) {
-	gitDir, err := ioutil.TempDir("", "claimer")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(gitDir)
+	repo := git.NewRepo(repoUrl, deployKey)
+	defer os.RemoveAll(repo.Dir)
 
-	signer, err := ssh.ParsePrivateKey([]byte(deployKey))
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = git.PlainClone(gitDir, false, &git.CloneOptions{
-		URL: repoUrl,
-		Auth: &gitssh.PublicKeys{
-			User:   "git",
-			Signer: signer,
-		},
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	files, err := ioutil.ReadDir(filepath.Join(gitDir, resource, "unclaimed"))
+	files, err := ioutil.ReadDir(filepath.Join(repo.Dir, resource, "unclaimed"))
 	if err != nil {
 		panic(err)
 	}
 
 	for _, file := range files {
 		if file.Name() != ".gitkeep" {
-			oldPath := filepath.Join(gitDir, resource, "unclaimed", file.Name())
-			newPath := filepath.Join(gitDir, resource, "claimed", file.Name())
+			oldPath := filepath.Join(repo.Dir, resource, "unclaimed", file.Name())
+			newPath := filepath.Join(repo.Dir, resource, "claimed", file.Name())
 			if err := os.Rename(oldPath, newPath); err != nil {
 				panic(err)
 			}
@@ -85,15 +62,5 @@ func claim(resource, repoUrl, deployKey string) {
 		}
 	}
 
-	runGitCommand(gitDir, "add", "-A", ".")
-	runGitCommand(gitDir, "commit", "-m", "Claimer claiming resource "+resource)
-	runGitCommand(gitDir, "push", "origin", "master")
-}
-
-func runGitCommand(gitDir string, args ...string) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = gitDir
-	if err := cmd.Run(); err != nil {
-		panic(err)
-	}
+	repo.CommitAndPush("Claimer claiming resource " + resource)
 }
