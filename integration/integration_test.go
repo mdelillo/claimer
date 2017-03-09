@@ -1,4 +1,4 @@
-package main_test
+package integration_test
 
 import (
 	"encoding/json"
@@ -107,6 +107,7 @@ var _ = Describe("Claimer", func() {
 
 		session.Terminate().Wait()
 	})
+
 })
 
 func getEnv(name string) string {
