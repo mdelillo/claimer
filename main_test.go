@@ -18,6 +18,7 @@ import (
 )
 
 const CHANNEL_ID = "C4DRR335H"
+const BOT_ID = "U4EJN25NK"
 
 var _ = Describe("Claimer", func() {
 	var claimer string
@@ -60,9 +61,9 @@ var _ = Describe("Claimer", func() {
 
 		claimerCommand := exec.Command(
 			claimer,
-			"--apiToken", apiToken,
-			"--repoUrl", repoUrl,
-			"--deployKey", deployKey,
+			"-apiToken", apiToken,
+			"-repoUrl", repoUrl,
+			"-deployKey", deployKey,
 		)
 		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
@@ -70,8 +71,10 @@ var _ = Describe("Claimer", func() {
 		// @claimer status
 		// assert about initial status
 
-		postSlackMessage("@claimer claim pool-1", apiToken)
-		Expect(latestSlackMessage(apiToken)).To(Equal("Claimed pool-1"))
+		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", BOT_ID), apiToken)
+		Eventually(func() string {
+			return latestSlackMessage(apiToken)
+		}).Should(Equal("Claimed pool-1"))
 		// assert about repo
 		// @claimer status
 		// assert about status
