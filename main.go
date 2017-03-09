@@ -14,21 +14,26 @@ func main() {
 	flag.Parse()
 
 	client := slack.NewClient("https://slack.com", *apiToken)
-	messages, err := client.Listen()
+	messageChan, errorChan, err := client.Listen()
 	if err != nil {
 		panic(err)
 	}
 
-	for message := range messages {
-		splitMessage := strings.Fields(message.Text)
-		switch splitMessage[1] {
-		case "claim":
-			if err := client.PostMessage(message.Channel, "Claimed pool-1"); err != nil {
-				panic(err)
+	for {
+		select {
+		case message := <-messageChan:
+			command := strings.Fields(message.Text)[1]
+			resource := strings.Fields(message.Text)[2]
+			switch command {
+			case "claim":
+				if err := client.PostMessage(message.Channel, "Claimed "+resource); err != nil {
+					panic(err)
+				}
+			default:
+				panic("Command " + command + " not implemented")
 			}
-		// TODO check response
-		default:
-			panic("Command " + splitMessage[1] + " not implemented")
+		case err := <-errorChan:
+			panic(err)
 		}
 	}
 }

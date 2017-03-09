@@ -28,22 +28,34 @@ type Message struct {
 	Channel string
 }
 
-func (c *client) Listen() (<-chan *Message, error) {
-	resp, err := http.Get(c.url + "/api/rtm.start?token=" + c.apiToken)
+func (c *client) Listen() (<-chan *Message, <-chan error, error) {
+	messageChan := make(chan (*Message), 10)
+	errorChan := make(chan (error))
+
+	websocketUrl, botId, err := startRtmSession(c.url, c.apiToken)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
+
+	if err := listenForMessages(websocketUrl, botId, messageChan, errorChan); err != nil {
+		return nil, nil, err
+	}
+
+	return messageChan, errorChan, nil
+}
+
+func startRtmSession(url, apiToken string) (string, string, error) {
+	resp, err := http.Get(url + "/api/rtm.start?token=" + apiToken)
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
-		panic("error from slack:: " + resp.Status)
+		return "", "", fmt.Errorf("bad response code: %s", resp.Status)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	resp.Body.Close()
-
-	var rtmStart struct {
+	var rtmStartResponse struct {
 		Ok    bool
 		Error string
 		Url   string
@@ -51,28 +63,34 @@ func (c *client) Listen() (<-chan *Message, error) {
 			Id string
 		}
 	}
-
-	if err := json.Unmarshal(body, &rtmStart); err != nil {
-		panic(err)
-	}
-	if !rtmStart.Ok {
-		panic("error from slack: " + rtmStart.Error)
-	}
-
-	botId := rtmStart.Self.Id
-
-	ws, err := websocket.Dial(rtmStart.Url, "", "https://api.slack.com/")
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return "", "", err
+	}
+	if err := json.Unmarshal(body, &rtmStartResponse); err != nil {
+		return "", "", err
 	}
 
-	messageChan := make(chan (*Message), 10)
+	if !rtmStartResponse.Ok {
+		return "", "", fmt.Errorf("failed to start RTM session: %s", rtmStartResponse.Error)
+	}
+
+	return rtmStartResponse.Url, rtmStartResponse.Self.Id, nil
+}
+
+func listenForMessages(url, botId string, messageChan chan<- *Message, errorChan chan<- error) error {
+	ws, err := websocket.Dial(url, "", "https://api.slack.com/")
+	if err != nil {
+		return fmt.Errorf("failed to connect to websocket: %s", err)
+	}
 
 	go func() {
 		for {
 			var message *Message
 			if err := websocket.JSON.Receive(ws, &message); err != nil {
-				// TODO: close message channel and put err on an error channel
+				close(messageChan)
+				errorChan <- fmt.Errorf("failed to parse message: %s", err)
+				close(errorChan)
 				return
 			}
 
@@ -82,7 +100,7 @@ func (c *client) Listen() (<-chan *Message, error) {
 		}
 	}()
 
-	return messageChan, nil
+	return nil
 }
 
 func messageMentionsUser(message *Message, botId string) bool {
