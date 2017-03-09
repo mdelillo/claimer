@@ -17,9 +17,6 @@ import (
 	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
 )
 
-const CHANNEL_ID = "C4DRR335H"
-const BOT_ID = "U4EJN25NK"
-
 var _ = Describe("Claimer", func() {
 	var claimer string
 	var gitDir string
@@ -44,6 +41,8 @@ var _ = Describe("Claimer", func() {
 		apiToken := getEnv("CLAIMER_TEST_API_TOKEN")
 		repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
 		deployKey := getEnv("CLAIMER_TEST_DEPLOY_KEY")
+		channelId := getEnv("CLAIMER_TEST_CHANNEL_ID")
+		botId := getEnv("CLAIMER_TEST_BOT_ID")
 
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
 		Expect(err).NotTo(HaveOccurred())
@@ -72,8 +71,9 @@ var _ = Describe("Claimer", func() {
 		// assert about initial status
 
 		By("Claiming a pool")
-		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", BOT_ID), apiToken)
-		Eventually(func() string { return latestSlackMessage(apiToken) }, "10s").Should(Equal("Claimed pool-1"))
+		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("Claimed pool-1"))
 		Eventually(func() error { return repo.Pull(&git.PullOptions{}) }, "10s").Should(Succeed())
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "resource-a")).To(BeARegularFile())
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "resource-a")).To(BeARegularFile())
@@ -117,12 +117,12 @@ func getEnv(name string) string {
 	return value
 }
 
-func postSlackMessage(text, apiToken string) {
+func postSlackMessage(text, channelId, apiToken string) {
 	resp, err := http.PostForm(
 		"https://slack.com/api/chat.postMessage",
 		url.Values{
 			"token":    {apiToken},
-			"channel":  {CHANNEL_ID},
+			"channel":  {channelId},
 			"text":     {text},
 			"as_user":  {"false"},
 			"username": {"claimer-integration-test"},
@@ -143,12 +143,12 @@ func postSlackMessage(text, apiToken string) {
 	Expect(slackResponse.Ok).To(BeTrue(), fmt.Sprintf("Posting to slack failed: %s", slackResponse.Error))
 }
 
-func latestSlackMessage(apiToken string) string {
+func latestSlackMessage(channelId, apiToken string) string {
 	resp, err := http.PostForm(
 		"https://slack.com/api/channels.history",
 		url.Values{
 			"token":   {apiToken},
-			"channel": {CHANNEL_ID},
+			"channel": {channelId},
 			"count":   {"1"},
 		},
 	)
