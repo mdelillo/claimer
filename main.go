@@ -5,7 +5,6 @@ import (
 	claimerfs "github.com/mdelillo/claimer/fs"
 	"github.com/mdelillo/claimer/git"
 	"github.com/mdelillo/claimer/slack"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 )
@@ -45,7 +44,7 @@ func main() {
 func claim(resource, repoUrl, deployKey string) {
 	fs := claimerfs.NewFs()
 
-	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
+	gitDir, err := fs.TempDir("claimer-git-repo")
 	if err != nil {
 		panic(err)
 	}

@@ -39,3 +39,7 @@ func (*filesystem) Ls(dir string) ([]string, error) {
 func (*filesystem) Rm(dir string) error {
 	return os.RemoveAll(dir)
 }
+
+func (*filesystem) TempDir(prefix string) (string, error) {
+	return ioutil.TempDir("", prefix)
+}

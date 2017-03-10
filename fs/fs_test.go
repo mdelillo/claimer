@@ -96,6 +96,15 @@ var _ = Describe("Fs", func() {
 		})
 
 	})
+
+	Describe("TempDir", func() {
+		It("creates a temporary directory", func() {
+			dir, err := fs.NewFs().TempDir("some-prefix")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dir).To(BeADirectory())
+			Expect(dir).To(ContainSubstring("some-prefix"))
+		})
+	})
 })
 
 func writeFile(path string, contents []byte) {
