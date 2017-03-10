@@ -15,17 +15,16 @@ type client struct {
 	url      string
 }
 
+type rtmEvent struct {
+	Type string
+	Message
+}
+
 func NewClient(url, apiToken string) *client {
 	return &client{
 		apiToken: apiToken,
 		url:      url,
 	}
-}
-
-type Message struct {
-	Type    string
-	Text    string
-	Channel string
 }
 
 func (c *client) Listen() (<-chan *Message, <-chan error, error) {
@@ -86,16 +85,16 @@ func listenForMessages(url, botId string, messageChan chan<- *Message, errorChan
 
 	go func() {
 		for {
-			var message *Message
-			if err := websocket.JSON.Receive(ws, &message); err != nil {
+			var event *rtmEvent
+			if err := websocket.JSON.Receive(ws, &event); err != nil {
 				close(messageChan)
 				errorChan <- fmt.Errorf("failed to parse message: %s", err)
 				close(errorChan)
 				return
 			}
 
-			if messageMentionsUser(message, botId) {
-				messageChan <- message
+			if isMessage(event) && mentionsUser(event, botId) {
+				messageChan <- &Message{Text: event.Text, Channel: event.Channel}
 			}
 		}
 	}()
@@ -103,8 +102,12 @@ func listenForMessages(url, botId string, messageChan chan<- *Message, errorChan
 	return nil
 }
 
-func messageMentionsUser(message *Message, botId string) bool {
-	return message.Type == "message" && strings.HasPrefix(message.Text, "<@"+botId+">")
+func isMessage(e *rtmEvent) bool {
+	return e.Type == "message"
+}
+
+func mentionsUser(e *rtmEvent, botId string) bool {
+	return strings.HasPrefix(e.Text, "<@"+botId+">")
 }
 
 func (c *client) PostMessage(channel, message string) error {
