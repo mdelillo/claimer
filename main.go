@@ -5,6 +5,7 @@ import (
 	claimerfs "github.com/mdelillo/claimer/fs"
 	"github.com/mdelillo/claimer/git"
 	"github.com/mdelillo/claimer/slack"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 )
@@ -44,21 +45,26 @@ func main() {
 func claim(resource, repoUrl, deployKey string) {
 	fs := claimerfs.NewFs()
 
-	repo := git.NewRepo(repoUrl, deployKey)
+	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
+	if err != nil {
+		panic(err)
+	}
+	defer fs.Rm(gitDir)
+
+	repo := git.NewRepo(repoUrl, deployKey, gitDir)
 	if err := repo.Clone(); err != nil {
 		panic(err)
 	}
-	defer fs.Rm(repo.Dir())
 
-	files, err := fs.Ls(filepath.Join(repo.Dir(), resource, "unclaimed"))
+	files, err := fs.Ls(filepath.Join(gitDir, resource, "unclaimed"))
 	if err != nil {
 		panic(err)
 	}
 
 	for _, file := range files {
 		if file != ".gitkeep" {
-			oldPath := filepath.Join(repo.Dir(), resource, "unclaimed", file)
-			newPath := filepath.Join(repo.Dir(), resource, "claimed", file)
+			oldPath := filepath.Join(gitDir, resource, "unclaimed", file)
+			newPath := filepath.Join(gitDir, resource, "claimed", file)
 			if err := fs.Mv(oldPath, newPath); err != nil {
 				panic(err)
 			}

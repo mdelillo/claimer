@@ -3,8 +3,6 @@ package git
 import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
-	"os"
 	"os/exec"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing/transport"
@@ -12,19 +10,20 @@ import (
 )
 
 type repo struct {
-	url string
+	url       string
 	deployKey string
-	dir string
+	dir       string
 }
 
-func NewRepo(url, deployKey string) (*repo) {
+func NewRepo(url, deployKey string, dir string) *repo {
 	return &repo{
-		url: url,
+		url:       url,
 		deployKey: deployKey,
+		dir:       dir,
 	}
 }
 
-func(r *repo) Clone() error {
+func (r *repo) Clone() error {
 	var auth transport.AuthMethod
 	if r.deployKey != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(r.deployKey))
@@ -35,23 +34,12 @@ func(r *repo) Clone() error {
 		auth = &gitssh.PublicKeys{User: "git", Signer: signer}
 	}
 
-	var err error
-	r.dir, err = ioutil.TempDir("", "claimer-git-repo")
+	_, err := git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
 	if err != nil {
-		return err
-	}
-
-	_, err = git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
-	if err != nil {
-		os.RemoveAll(r.dir)
 		return fmt.Errorf("failed to clone repo: %s", err)
 	}
 
 	return nil
-}
-
-func (r *repo) Dir() string {
-	return r.dir
 }
 
 func (r *repo) CommitAndPush(message string) error {
@@ -69,6 +57,6 @@ func (r *repo) CommitAndPush(message string) error {
 
 func (r *repo) run(args ...string) ([]byte, error) {
 	cmd := exec.Command("git", args...)
-	cmd.Dir = r.Dir()
+	cmd.Dir = r.dir
 	return cmd.CombinedOutput()
 }
