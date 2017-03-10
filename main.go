@@ -51,7 +51,7 @@ func claim(pool, repoUrl, deployKey string) {
 	defer fs.Rm(gitDir)
 
 	repo := git.NewRepo(repoUrl, deployKey, gitDir)
-	if err := repo.Clone(); err != nil {
+	if err := repo.CloneOrPull(); err != nil {
 		panic(err)
 	}
 

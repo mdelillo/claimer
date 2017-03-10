@@ -26,35 +26,83 @@ var _ = Describe("Repo", func() {
 		os.RemoveAll(gitDir)
 	})
 
-	Describe("Clone", func() {
-		It("clones public repos without authorization", func() {
-			repo := git.NewRepo("https://github.com/octocat/Hello-World", "", gitDir)
-			Expect(repo.Clone()).To(Succeed())
-			Expect(runGitCommand(gitDir, "status")).To(ContainSubstring("working tree clean"))
+	Describe("CloneOrPull", func() {
+		Context("when the directory already contains a repo", func() {
+			Context("when the repo is public", func() {
+				It("updates the repo", func() {
+					repo := git.NewRepo("https://github.com/octocat/Hello-World", "", gitDir)
+					Expect(repo.CloneOrPull()).To(Succeed())
+
+					master := runGitCommand(gitDir, "rev-parse", "HEAD")
+					runGitCommand(gitDir, "reset", "--hard", "HEAD~")
+
+					Expect(repo.CloneOrPull()).To(Succeed())
+					Expect(runGitCommand(gitDir, "rev-parse", "HEAD")).To(Equal(master))
+				})
+			})
+
+			Context("when the repo is private", func() {
+				It("updates the repo", func() {
+					repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
+					deployKey := getEnv("CLAIMER_TEST_DEPLOY_KEY")
+
+					repo := git.NewRepo(repoUrl, deployKey, gitDir)
+					Expect(repo.CloneOrPull()).To(Succeed())
+
+					master := runGitCommand(gitDir, "rev-parse", "HEAD")
+					runGitCommand(gitDir, "reset", "--hard", "HEAD~")
+
+					Expect(repo.CloneOrPull()).To(Succeed())
+					Expect(runGitCommand(gitDir, "rev-parse", "HEAD")).To(Equal(master))
+				})
+			})
 		})
 
-		It("clones private repos using an SSH key", func() {
-			repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
-			deployKey := getEnv("CLAIMER_TEST_DEPLOY_KEY")
+		Context("when the directory does not contain a repo", func() {
+			Context("when the repo is public", func() {
+				It("clones the repo", func() {
+					repo := git.NewRepo("https://github.com/octocat/Hello-World", "", gitDir)
+					Expect(repo.CloneOrPull()).To(Succeed())
+					Expect(runGitCommand(gitDir, "status")).To(ContainSubstring("working tree clean"))
+				})
+			})
 
-			repo := git.NewRepo(repoUrl, deployKey, gitDir)
-			Expect(repo.Clone()).To(Succeed())
-			Expect(runGitCommand(gitDir, "status")).To(ContainSubstring("working tree clean"))
+			Context("when the repo is private", func() {
+				It("clones the repo", func() {
+					repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
+					deployKey := getEnv("CLAIMER_TEST_DEPLOY_KEY")
+
+					repo := git.NewRepo(repoUrl, deployKey, gitDir)
+					Expect(repo.CloneOrPull()).To(Succeed())
+					Expect(runGitCommand(gitDir, "status")).To(ContainSubstring("working tree clean"))
+				})
+			})
 		})
 
 		Context("when the SSH key is invalid", func() {
 			It("returns an error", func() {
 				repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
 
-				repo := git.NewRepo(repoUrl, "some-invalid-deploy-key", "")
-				Expect(repo.Clone()).To(MatchError(ContainSubstring("failed to parse public key: ")))
+				repo := git.NewRepo(repoUrl, "some-invalid-deploy-key", gitDir)
+				Expect(repo.CloneOrPull()).To(MatchError(ContainSubstring("failed to parse public key: ")))
 			})
 		})
 
-		Context("when the URL is invalid", func() {
+		Context("when pulling the repo fails", func() {
 			It("returns an error", func() {
-				repo := git.NewRepo("some-invalid-url", "", "")
-				Expect(repo.Clone()).To(MatchError(ContainSubstring("failed to clone repo: ")))
+				repo := git.NewRepo("https://github.com/octocat/Hello-World", "", gitDir)
+				Expect(repo.CloneOrPull()).To(Succeed())
+
+				runGitCommand(gitDir, "remote", "remove", "origin")
+
+				Expect(repo.CloneOrPull()).To(MatchError(ContainSubstring("failed to pull repo: ")))
+			})
+		})
+
+		Context("when cloning the repo fails", func() {
+			It("returns an error", func() {
+				repo := git.NewRepo("some-invalid-url", "", gitDir)
+				Expect(repo.CloneOrPull()).To(MatchError(ContainSubstring("failed to clone repo: ")))
 			})
 		})
 	})
@@ -86,7 +134,7 @@ var _ = Describe("Repo", func() {
 			commitMessage := "some-commit-message"
 			newFileName := "some-new-file"
 
-			Expect(ioutil.WriteFile(filepath.Join(gitDir, newFileName), nil, 0644)).To(Succeed())
+			touchFile(filepath.Join(gitDir, newFileName))
 
 			repo := git.NewRepo(gitRemoteUrl, "", gitDir)
 			Expect(repo.CommitAndPush(commitMessage)).To(Succeed())
@@ -105,7 +153,7 @@ var _ = Describe("Repo", func() {
 		Context("when pushing fails", func() {
 			It("returns an error", func() {
 				runGitCommand(gitDir, "remote", "remove", "origin")
-				Expect(ioutil.WriteFile(filepath.Join(gitDir, "some-new-file"), nil, 0644)).To(Succeed())
+				touchFile(filepath.Join(gitDir, "some-new-file"))
 
 				repo := git.NewRepo(gitRemoteUrl, "", gitDir)
 				err := repo.CommitAndPush("some-commit-message")
@@ -129,4 +177,8 @@ func runGitCommand(dir string, args ...string) string {
 	output, err := cmd.CombinedOutput()
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), string(output))
 	return string(output)
+}
+
+func touchFile(path string) {
+	Expect(ioutil.WriteFile(path, nil, 0644)).To(Succeed())
 }

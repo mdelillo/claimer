@@ -7,6 +7,7 @@ import (
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing/transport"
 	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
+	"strings"
 )
 
 type repo struct {
@@ -23,7 +24,7 @@ func NewRepo(url, deployKey string, dir string) *repo {
 	}
 }
 
-func (r *repo) Clone() error {
+func (r *repo) CloneOrPull() error {
 	var auth transport.AuthMethod
 	if r.deployKey != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(r.deployKey))
@@ -34,12 +35,27 @@ func (r *repo) Clone() error {
 		auth = &gitssh.PublicKeys{User: "git", Signer: signer}
 	}
 
-	_, err := git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
-	if err != nil {
-		return fmt.Errorf("failed to clone repo: %s", err)
+	if r.cloned() {
+		r, err := git.PlainOpen(r.dir)
+		if err != nil {
+			return fmt.Errorf("failed to open repo: %s", err)
+		}
+		if err := r.Pull(&git.PullOptions{Auth: auth}); err != nil {
+			return fmt.Errorf("failed to pull repo: %s", err)
+		}
+	} else {
+		_, err := git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
+		if err != nil {
+			return fmt.Errorf("failed to clone repo: %s", err)
+		}
 	}
 
 	return nil
+}
+
+func (r *repo) cloned() bool {
+	output, err := r.run("rev-parse", "--is-inside-work-tree")
+	return err == nil && strings.TrimSpace(string(output)) == "true"
 }
 
 func (r *repo) CommitAndPush(message string) error {
