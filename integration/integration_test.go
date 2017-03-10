@@ -74,8 +74,8 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Claimed pool-1"))
 		Eventually(func() error { return repo.Pull(&git.PullOptions{}) }, "10s").Should(Succeed())
-		Expect(filepath.Join(gitDir, "pool-1", "claimed", "resource-a")).To(BeARegularFile())
-		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "resource-a")).To(BeARegularFile())
+		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeARegularFile())
+		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).To(BeARegularFile())
 
 		// @claimer status
 		// assert about status

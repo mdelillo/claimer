@@ -25,11 +25,11 @@ func main() {
 		select {
 		case message := <-messageChan:
 			command := strings.Fields(message.Text)[1]
-			resource := strings.Fields(message.Text)[2]
+			pool := strings.Fields(message.Text)[2]
 			switch command {
 			case "claim":
-				claim(resource, *repoUrl, *deployKey)
-				if err := client.PostMessage(message.Channel, "Claimed "+resource); err != nil {
+				claim(pool, *repoUrl, *deployKey)
+				if err := client.PostMessage(message.Channel, "Claimed "+pool); err != nil {
 					panic(err)
 				}
 			default:
@@ -41,7 +41,7 @@ func main() {
 	}
 }
 
-func claim(resource, repoUrl, deployKey string) {
+func claim(pool, repoUrl, deployKey string) {
 	fs := claimerfs.NewFs()
 
 	gitDir, err := fs.TempDir("claimer-git-repo")
@@ -55,15 +55,15 @@ func claim(resource, repoUrl, deployKey string) {
 		panic(err)
 	}
 
-	files, err := fs.Ls(filepath.Join(gitDir, resource, "unclaimed"))
+	files, err := fs.Ls(filepath.Join(gitDir, pool, "unclaimed"))
 	if err != nil {
 		panic(err)
 	}
 
 	for _, file := range files {
 		if file != ".gitkeep" {
-			oldPath := filepath.Join(gitDir, resource, "unclaimed", file)
-			newPath := filepath.Join(gitDir, resource, "claimed", file)
+			oldPath := filepath.Join(gitDir, pool, "unclaimed", file)
+			newPath := filepath.Join(gitDir, pool, "claimed", file)
 			if err := fs.Mv(oldPath, newPath); err != nil {
 				panic(err)
 			}
@@ -71,5 +71,5 @@ func claim(resource, repoUrl, deployKey string) {
 		}
 	}
 
-	repo.CommitAndPush("Claimer claiming resource " + resource)
+	repo.CommitAndPush("Claimer claiming " + pool)
 }
