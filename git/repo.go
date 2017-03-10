@@ -12,32 +12,42 @@ import (
 )
 
 type repo struct {
+	url string
+	deployKey string
 	dir string
 }
 
-func NewRepo(url, deployKey string) (*repo, error) {
+func NewRepo(url, deployKey string) (*repo) {
+	return &repo{
+		url: url,
+		deployKey: deployKey,
+	}
+}
+
+func(r *repo) Clone() error {
 	var auth transport.AuthMethod
-	if deployKey != "" {
-		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
+	if r.deployKey != "" {
+		signer, err := ssh.ParsePrivateKey([]byte(r.deployKey))
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse public key: %s", err)
+			return fmt.Errorf("failed to parse public key: %s", err)
 		}
 
 		auth = &gitssh.PublicKeys{User: "git", Signer: signer}
 	}
 
-	dir, err := ioutil.TempDir("", "claimer-git-repo")
+	var err error
+	r.dir, err = ioutil.TempDir("", "claimer-git-repo")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	_, err = git.PlainClone(dir, false, &git.CloneOptions{URL: url, Auth: auth})
+	_, err = git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
 	if err != nil {
-		os.RemoveAll(dir)
-		return nil, fmt.Errorf("failed to clone repo: %s", err)
+		os.RemoveAll(r.dir)
+		return fmt.Errorf("failed to clone repo: %s", err)
 	}
 
-	return &repo{dir: dir}, nil
+	return nil
 }
 
 func (r *repo) Dir() string {

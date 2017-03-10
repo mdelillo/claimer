@@ -44,8 +44,8 @@ func main() {
 func claim(resource, repoUrl, deployKey string) {
 	fs := claimerfs.NewFs()
 
-	repo, err := git.NewRepo(repoUrl, deployKey)
-	if err != nil {
+	repo := git.NewRepo(repoUrl, deployKey)
+	if err := repo.Clone(); err != nil {
 		panic(err)
 	}
 	defer fs.Rm(repo.Dir())
