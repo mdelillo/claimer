@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type filesystem struct{}
@@ -28,12 +29,16 @@ func (*filesystem) Ls(dir string) ([]string, error) {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() {
+		if !file.IsDir() && !isHidden(file) {
 			filenames = append(filenames, file.Name())
 		}
 	}
 
 	return filenames, nil
+}
+
+func isHidden(fileInfo os.FileInfo) bool {
+	return strings.HasPrefix(fileInfo.Name(), ".")
 }
 
 func (*filesystem) Rm(dir string) error {

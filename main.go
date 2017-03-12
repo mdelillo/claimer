@@ -61,14 +61,12 @@ func claim(pool, repoUrl, deployKey string) {
 	}
 
 	for _, file := range files {
-		if file != ".gitkeep" {
-			oldPath := filepath.Join(gitDir, pool, "unclaimed", file)
-			newPath := filepath.Join(gitDir, pool, "claimed", file)
-			if err := fs.Mv(oldPath, newPath); err != nil {
-				panic(err)
-			}
-			break
+		oldPath := filepath.Join(gitDir, pool, "unclaimed", file)
+		newPath := filepath.Join(gitDir, pool, "claimed", file)
+		if err := fs.Mv(oldPath, newPath); err != nil {
+			panic(err)
 		}
+		break
 	}
 
 	repo.CommitAndPush("Claimer claiming " + pool)

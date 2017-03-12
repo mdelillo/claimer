@@ -66,12 +66,13 @@ var _ = Describe("Fs", func() {
 	})
 
 	Describe("Ls", func() {
-		It("lists files in a directory", func() {
+		It("lists non-hidden files in a directory", func() {
 			firstFile := "some-file"
 			secondFile := "some-other-file"
 
 			writeFile(filepath.Join(tempDir, firstFile), nil)
 			writeFile(filepath.Join(tempDir, secondFile), nil)
+			writeFile(filepath.Join(tempDir, ".some-hidden-file"), nil)
 			mkdir(filepath.Join(tempDir, "some-directory"))
 
 			Expect(fs.NewFs().Ls(tempDir)).To(Equal([]string{firstFile, secondFile}))
