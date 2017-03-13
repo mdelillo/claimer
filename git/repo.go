@@ -36,12 +36,15 @@ func (r *repo) CloneOrPull() error {
 	}
 
 	if r.cloned() {
-		r, err := git.PlainOpen(r.dir)
+		_, err := git.PlainOpen(r.dir)
 		if err != nil {
 			return fmt.Errorf("failed to open repo: %s", err)
 		}
-		if err := r.Pull(&git.PullOptions{Auth: auth}); err != nil {
-			return fmt.Errorf("failed to pull repo: %s", err)
+		if output, err := r.run("fetch"); err != nil {
+			return fmt.Errorf("failed to fetch repo: %s", string(output))
+		}
+		if output, err := r.run("reset", "--hard", "origin/master"); err != nil {
+			return fmt.Errorf("failed to reset repo: %s", string(output))
 		}
 	} else {
 		_, err := git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})

@@ -57,3 +57,31 @@ func (l *locker) ClaimLock(pool string) error {
 	}
 	return nil
 }
+
+func (l *locker) ReleaseLock(pool string) error {
+	if err := l.gitRepo.CloneOrPull(); err != nil {
+		return err
+	}
+
+	locks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "claimed"))
+	if err != nil {
+		return err
+	}
+
+	if len(locks) == 0 {
+		return fmt.Errorf("no claimed locks for pool " + pool)
+	} else if len(locks) > 1 {
+		return fmt.Errorf("too many claimed locks for pool " + pool)
+	}
+
+	claimedLock := filepath.Join(l.gitRepo.Dir(), pool, "claimed", locks[0])
+	unclaimedLock := filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", locks[0])
+	if err := l.fs.Mv(claimedLock, unclaimedLock); err != nil {
+		return err
+	}
+
+	if err := l.gitRepo.CommitAndPush("Claimer releasing " + pool); err != nil {
+		return err
+	}
+	return nil
+}

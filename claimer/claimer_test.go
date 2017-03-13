@@ -85,6 +85,69 @@ var _ = Describe("Claimer", func() {
 			})
 		})
 
+		Context("when a release message is received", func() {
+			It("releases the lock and posts to slack", func() {
+				channel := "some-channel"
+				pool := "some-pool"
+
+				slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+					messageHandler(fmt.Sprintf("@some-bot release %s", pool), channel)
+					return nil
+				}
+
+				claimer := New(locker, slackClient)
+				Expect(claimer.Run()).To(Succeed())
+
+				Expect(locker.ReleaseLockCallCount()).To(Equal(1))
+				Expect(locker.ReleaseLockArgsForCall(0)).To(Equal(pool))
+
+				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(postChannel).To(Equal(channel))
+				Expect(postMessage).To(Equal("Released " + pool))
+			})
+
+			Context("when no pool is specified", func() {
+				It("returns an error", func() {
+					slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+						messageHandler("@some-bot release", "some-channel")
+						return nil
+					}
+
+					claimer := New(locker, slackClient)
+					Expect(claimer.Run()).To(MatchError("no pool specified"))
+				})
+			})
+
+			Context("when releasing the lock fails", func() {
+				It("returns an error", func() {
+					slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+						messageHandler("@some-bot release some-pool", "some-channel")
+						return nil
+					}
+
+					locker.ReleaseLockReturns(errors.New("some-error"))
+
+					claimer := New(locker, slackClient)
+					Expect(claimer.Run()).To(MatchError("some-error"))
+				})
+			})
+
+			Context("when posting to slack fails", func() {
+				It("returns an error", func() {
+					slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+						messageHandler("@some-bot release some-pool", "some-channel")
+						return nil
+					}
+
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					claimer := New(locker, slackClient)
+					Expect(claimer.Run()).To(MatchError("some-error"))
+				})
+			})
+		})
+
 		Context("when listening to slack messages fails", func() {
 			It("returns an error", func() {
 				slackClient.ListenReturns(errors.New("some-error"))

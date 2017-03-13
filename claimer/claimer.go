@@ -9,6 +9,7 @@ import (
 //go:generate counterfeiter . locker
 type locker interface {
 	ClaimLock(pool string) error
+	ReleaseLock(pool string) error
 }
 
 //go:generate counterfeiter . slackClient
@@ -50,6 +51,10 @@ func (c *claimer) handleMessage(text, channel string) error {
 		if err := c.claim(text, channel); err != nil {
 			return err
 		}
+	case "release":
+		if err := c.release(text, channel); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown command '%s'", command)
 	}
@@ -65,6 +70,20 @@ func (c *claimer) claim(text, channel string) error {
 		return err
 	}
 	if err := c.slackClient.PostMessage(channel, "Claimed "+pool); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *claimer) release(text, channel string) error {
+	if len(strings.Fields(text)) < 3 {
+		return errors.New("no pool specified")
+	}
+	pool := strings.Fields(text)[2]
+	if err := c.locker.ReleaseLock(pool); err != nil {
+		return err
+	}
+	if err := c.slackClient.PostMessage(channel, "Released "+pool); err != nil {
 		return err
 	}
 	return nil

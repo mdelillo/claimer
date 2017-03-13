@@ -69,12 +69,12 @@ var _ = Describe("Claimer", func() {
 		// @claimer status
 		// assert about initial status
 
-		By("Claiming a pool")
+		By("Claiming pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Claimed pool-1"))
 		updateGitRepo(gitDir)
-		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeARegularFile())
+		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeAnExistingFile())
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).NotTo(BeAnExistingFile())
 
 		// @claimer status
@@ -83,9 +83,14 @@ var _ = Describe("Claimer", func() {
 		// @claimer claim pool-1
 		// assert about error
 
-		// @claimer release pool-1
-		// assert about response
-		// assert about repo
+		By("Releasing pool-1")
+		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("Released pool-1"))
+		updateGitRepo(gitDir)
+		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).To(BeAnExistingFile())
+		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).NotTo(BeAnExistingFile())
+
 		// @claimer status
 		// assert about status
 

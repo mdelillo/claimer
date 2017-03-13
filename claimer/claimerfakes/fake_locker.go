@@ -17,6 +17,17 @@ type FakeLocker struct {
 	claimLockReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ReleaseLockStub        func(pool string) error
+	releaseLockMutex       sync.RWMutex
+	releaseLockArgsForCall []struct {
+		pool string
+	}
+	releaseLockReturns struct {
+		result1 error
+	}
+	releaseLockReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -69,11 +80,61 @@ func (fake *FakeLocker) ClaimLockReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeLocker) ReleaseLock(pool string) error {
+	fake.releaseLockMutex.Lock()
+	ret, specificReturn := fake.releaseLockReturnsOnCall[len(fake.releaseLockArgsForCall)]
+	fake.releaseLockArgsForCall = append(fake.releaseLockArgsForCall, struct {
+		pool string
+	}{pool})
+	fake.recordInvocation("ReleaseLock", []interface{}{pool})
+	fake.releaseLockMutex.Unlock()
+	if fake.ReleaseLockStub != nil {
+		return fake.ReleaseLockStub(pool)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.releaseLockReturns.result1
+}
+
+func (fake *FakeLocker) ReleaseLockCallCount() int {
+	fake.releaseLockMutex.RLock()
+	defer fake.releaseLockMutex.RUnlock()
+	return len(fake.releaseLockArgsForCall)
+}
+
+func (fake *FakeLocker) ReleaseLockArgsForCall(i int) string {
+	fake.releaseLockMutex.RLock()
+	defer fake.releaseLockMutex.RUnlock()
+	return fake.releaseLockArgsForCall[i].pool
+}
+
+func (fake *FakeLocker) ReleaseLockReturns(result1 error) {
+	fake.ReleaseLockStub = nil
+	fake.releaseLockReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLocker) ReleaseLockReturnsOnCall(i int, result1 error) {
+	fake.ReleaseLockStub = nil
+	if fake.releaseLockReturnsOnCall == nil {
+		fake.releaseLockReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.releaseLockReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.claimLockMutex.RLock()
 	defer fake.claimLockMutex.RUnlock()
+	fake.releaseLockMutex.RLock()
+	defer fake.releaseLockMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -95,7 +95,7 @@ var _ = Describe("Repo", func() {
 
 				runGitCommand(gitDir, "remote", "remove", "origin")
 
-				Expect(repo.CloneOrPull()).To(MatchError(ContainSubstring("failed to pull repo: ")))
+				Expect(repo.CloneOrPull()).To(MatchError(ContainSubstring("failed to fetch repo: ")))
 			})
 		})
 
