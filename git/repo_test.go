@@ -164,9 +164,8 @@ var _ = Describe("Repo", func() {
 
 	Describe("Dir", func() {
 		It("returns the git directory", func() {
-			gitDir := "some-dir"
-			repo := NewRepo("", "", gitDir)
-			Expect(repo.Dir()).To(Equal(gitDir))
+			repo := NewRepo("", "", "some-dir")
+			Expect(repo.Dir()).To(Equal("some-dir"))
 		})
 	})
 })

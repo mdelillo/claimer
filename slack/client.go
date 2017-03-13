@@ -28,7 +28,7 @@ func NewClient(url, apiToken string) *client {
 	}
 }
 
-func (c *client) Listen(messageHandler func(string, string)) error {
+func (c *client) Listen(messageHandler func(text, channel string)) error {
 	websocketUrl, botId, err := startRtmSession(c.url, c.apiToken)
 	if err != nil {
 		return err
