@@ -161,6 +161,14 @@ var _ = Describe("Repo", func() {
 			})
 		})
 	})
+
+	Describe("Dir", func() {
+		It("returns the git directory", func() {
+			gitDir := "some-dir"
+			repo := git.NewRepo("", "", gitDir)
+			Expect(repo.Dir()).To(Equal(gitDir))
+		})
+	})
 })
 
 func getEnv(name string) string {

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+go install github.com/mdelillo/claimer/vendor/github.com/maxbrunsfeld/counterfeiter
+go generate $(go list github.com/mdelillo/claimer/... | grep -v /vendor/)

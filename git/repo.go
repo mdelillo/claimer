@@ -53,11 +53,6 @@ func (r *repo) CloneOrPull() error {
 	return nil
 }
 
-func (r *repo) cloned() bool {
-	output, err := r.run("rev-parse", "--is-inside-work-tree")
-	return err == nil && strings.TrimSpace(string(output)) == "true"
-}
-
 func (r *repo) CommitAndPush(message string) error {
 	if output, err := r.run("add", "-A"); err != nil {
 		return fmt.Errorf("failed to stage files: %s", string(output))
@@ -69,6 +64,15 @@ func (r *repo) CommitAndPush(message string) error {
 		return fmt.Errorf("failed to push: %s", string(output))
 	}
 	return nil
+}
+
+func (r *repo) Dir() string {
+	return r.dir
+}
+
+func (r *repo) cloned() bool {
+	output, err := r.run("rev-parse", "--is-inside-work-tree")
+	return err == nil && strings.TrimSpace(string(output)) == "true"
 }
 
 func (r *repo) run(args ...string) ([]byte, error) {
