@@ -1,7 +1,7 @@
 package fs_test
 
 import (
-	"github.com/mdelillo/claimer/fs"
+	. "github.com/mdelillo/claimer/fs"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,7 +32,7 @@ var _ = Describe("Fs", func() {
 
 				writeFile(src, contents)
 
-				Expect(fs.NewFs().Mv(src, dst)).To(Succeed())
+				Expect(NewFs().Mv(src, dst)).To(Succeed())
 				Expect(src).NotTo(BeAnExistingFile())
 				Expect(ioutil.ReadFile(dst)).To(Equal(contents))
 
@@ -48,7 +48,7 @@ var _ = Describe("Fs", func() {
 				writeFile(src, contents)
 				writeFile(dst, []byte("some-old-contents"))
 
-				Expect(fs.NewFs().Mv(src, dst)).To(Succeed())
+				Expect(NewFs().Mv(src, dst)).To(Succeed())
 				Expect(src).NotTo(BeAnExistingFile())
 				Expect(ioutil.ReadFile(dst)).To(Equal(contents))
 
@@ -60,7 +60,7 @@ var _ = Describe("Fs", func() {
 				src := filepath.Join(tempDir, "some-src-path")
 				dst := filepath.Join(tempDir, "some-dst-path")
 
-				Expect(fs.NewFs().Mv(src, dst)).To(MatchError(ContainSubstring("failed to move file:")))
+				Expect(NewFs().Mv(src, dst)).To(MatchError(ContainSubstring("failed to move file:")))
 			})
 		})
 	})
@@ -75,12 +75,12 @@ var _ = Describe("Fs", func() {
 			writeFile(filepath.Join(tempDir, ".some-hidden-file"), nil)
 			mkdir(filepath.Join(tempDir, "some-directory"))
 
-			Expect(fs.NewFs().Ls(tempDir)).To(Equal([]string{firstFile, secondFile}))
+			Expect(NewFs().Ls(tempDir)).To(Equal([]string{firstFile, secondFile}))
 		})
 
 		Context("when listing the directory fails", func() {
 			It("returns an error", func() {
-				_, err := fs.NewFs().Ls("some-bad-dir")
+				_, err := NewFs().Ls("some-bad-dir")
 				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
 			})
 		})
@@ -92,7 +92,7 @@ var _ = Describe("Fs", func() {
 			mkdir(filepath.Join(tempDir, "some-directory"))
 			writeFile(filepath.Join(tempDir, "some-directory", "some-file"), nil)
 
-			Expect(fs.NewFs().Rm(tempDir)).To(Succeed())
+			Expect(NewFs().Rm(tempDir)).To(Succeed())
 			Expect(tempDir).NotTo(BeADirectory())
 		})
 
@@ -100,7 +100,7 @@ var _ = Describe("Fs", func() {
 
 	Describe("TempDir", func() {
 		It("creates a temporary directory", func() {
-			dir, err := fs.NewFs().TempDir("some-prefix")
+			dir, err := NewFs().TempDir("some-prefix")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dir).To(BeADirectory())
 			Expect(dir).To(ContainSubstring("some-prefix"))

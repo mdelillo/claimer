@@ -1,7 +1,7 @@
 package slack_test
 
 import (
-	"github.com/mdelillo/claimer/slack"
+	. "github.com/mdelillo/claimer/slack"
 
 	"fmt"
 	. "github.com/onsi/ginkgo"
@@ -62,10 +62,10 @@ var _ = Describe("Client", func() {
 			}))
 			defer server.Close()
 
-			messageChannel, _, err := slack.NewClient(server.URL, apiToken).Listen()
+			messageChannel, _, err := NewClient(server.URL, apiToken).Listen()
 			Expect(err).NotTo(HaveOccurred())
 
-			var message *slack.Message
+			var message *Message
 			Eventually(messageChannel).Should(Receive(&message))
 			Expect(message.Text).To(Equal(firstMessageText))
 			Expect(message.Channel).To(Equal(channel))
@@ -87,7 +87,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					_, _, err := slack.NewClient(server.URL, "").Listen()
+					_, _, err := NewClient(server.URL, "").Listen()
 					Expect(err).To(MatchError("bad response code: 503 Service Unavailable"))
 				})
 			})
@@ -101,7 +101,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					_, _, err := slack.NewClient(server.URL, "").Listen()
+					_, _, err := NewClient(server.URL, "").Listen()
 					Expect(err).To(MatchError("failed to start RTM session: some-error"))
 				})
 			})
@@ -115,7 +115,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					_, _, err := slack.NewClient(server.URL, "").Listen()
+					_, _, err := NewClient(server.URL, "").Listen()
 					Expect(err).To(MatchError(ContainSubstring("invalid character")))
 				})
 			})
@@ -131,7 +131,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					_, _, err := slack.NewClient(server.URL, "").Listen()
+					_, _, err := NewClient(server.URL, "").Listen()
 					Expect(err).To(MatchError(MatchRegexp("failed to connect to websocket: .*some-bad-url.*")))
 				})
 			})
@@ -153,7 +153,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					_, errorChannel, listenError := slack.NewClient(server.URL, "").Listen()
+					_, errorChannel, listenError := NewClient(server.URL, "").Listen()
 					Expect(listenError).NotTo(HaveOccurred())
 
 					var err error
@@ -185,7 +185,7 @@ var _ = Describe("Client", func() {
 			}))
 			defer server.Close()
 
-			client := slack.NewClient(server.URL, apiToken)
+			client := NewClient(server.URL, apiToken)
 			Expect(client.PostMessage(channel, message)).To(Succeed())
 		})
 
@@ -198,7 +198,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := slack.NewClient(server.URL, "")
+				client := NewClient(server.URL, "")
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError("error posting to slack: 503 Service Unavailable"))
 			})
@@ -213,7 +213,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := slack.NewClient(server.URL, "")
+				client := NewClient(server.URL, "")
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError("error posting to slack: some-error"))
 			})
@@ -228,7 +228,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := slack.NewClient(server.URL, "")
+				client := NewClient(server.URL, "")
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError(ContainSubstring("invalid character")))
 			})
