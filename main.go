@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	. "github.com/mdelillo/claimer/claimer"
 	. "github.com/mdelillo/claimer/fs"
 	. "github.com/mdelillo/claimer/git"
@@ -19,7 +20,7 @@ func main() {
 
 	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error creating temp directory: %s\n", err)
 	}
 	defer os.RemoveAll(gitDir)
 
@@ -28,5 +29,7 @@ func main() {
 	locker := NewLocker(fs, repo)
 	slackClient := NewClient("https://slack.com", *apiToken)
 	claimer := New(locker, slackClient)
-	claimer.Run()
+	if err := claimer.Run(); err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
 }
