@@ -6,6 +6,8 @@ import (
 	. "github.com/mdelillo/claimer/git"
 	. "github.com/mdelillo/claimer/locker"
 	. "github.com/mdelillo/claimer/slack"
+	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -17,11 +19,11 @@ func main() {
 
 	fs := NewFs()
 
-	gitDir, err := fs.TempDir("claimer-git-repo")
+	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
 	if err != nil {
 		panic(err)
 	}
-	defer fs.Rm(gitDir)
+	defer os.RemoveAll(gitDir)
 
 	repo := NewRepo(*repoUrl, *deployKey, gitDir)
 

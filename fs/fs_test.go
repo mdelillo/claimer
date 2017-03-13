@@ -85,27 +85,6 @@ var _ = Describe("Fs", func() {
 			})
 		})
 	})
-
-	Describe("Rm", func() {
-		It("removes path and any children", func() {
-			writeFile(filepath.Join(tempDir, "some-file"), nil)
-			mkdir(filepath.Join(tempDir, "some-directory"))
-			writeFile(filepath.Join(tempDir, "some-directory", "some-file"), nil)
-
-			Expect(NewFs().Rm(tempDir)).To(Succeed())
-			Expect(tempDir).NotTo(BeADirectory())
-		})
-
-	})
-
-	Describe("TempDir", func() {
-		It("creates a temporary directory", func() {
-			dir, err := NewFs().TempDir("some-prefix")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(dir).To(BeADirectory())
-			Expect(dir).To(ContainSubstring("some-prefix"))
-		})
-	})
 })
 
 func writeFile(path string, contents []byte) {
