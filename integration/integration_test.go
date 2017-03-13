@@ -46,7 +46,7 @@ var _ = Describe("Claimer", func() {
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
 		Expect(err).NotTo(HaveOccurred())
 
-		repo, err := git.PlainClone(gitDir, false, &git.CloneOptions{
+		_, err = git.PlainClone(gitDir, false, &git.CloneOptions{
 			URL: repoUrl,
 			Auth: &gitssh.PublicKeys{
 				User:   "git",
@@ -73,9 +73,9 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Claimed pool-1"))
-		Eventually(func() error { return repo.Pull(&git.PullOptions{}) }, "10s").Should(Succeed())
+		updateGitRepo(gitDir)
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeARegularFile())
-		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).To(BeARegularFile())
+		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).NotTo(BeAnExistingFile())
 
 		// @claimer status
 		// assert about status
@@ -172,6 +172,11 @@ func latestSlackMessage(channelId, apiToken string) string {
 	Expect(slackResponse.Ok).To(BeTrue(), fmt.Sprintf("Getting message from slack failed: %s", slackResponse.Error))
 
 	return slackResponse.Messages[0].Text
+}
+
+func updateGitRepo(gitDir string) {
+	runGitCommand(gitDir, "fetch")
+	runGitCommand(gitDir, "reset", "--hard", "origin/master")
 }
 
 func resetClaimerTestPool(gitDir string) {
