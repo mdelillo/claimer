@@ -16,8 +16,9 @@ type client struct {
 }
 
 type rtmEvent struct {
-	Type string
-	Message
+	Type    string
+	Text    string
+	Channel string
 }
 
 func NewClient(url, apiToken string) *client {
@@ -27,20 +28,17 @@ func NewClient(url, apiToken string) *client {
 	}
 }
 
-func (c *client) Listen() (<-chan *Message, <-chan error, error) {
-	messageChan := make(chan (*Message), 10)
-	errorChan := make(chan (error))
-
+func (c *client) Listen(messageHandler func(string, string)) error {
 	websocketUrl, botId, err := startRtmSession(c.url, c.apiToken)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	if err := listenForMessages(websocketUrl, botId, messageChan, errorChan); err != nil {
-		return nil, nil, err
+	if err := handleMessages(websocketUrl, botId, messageHandler); err != nil {
+		return err
 	}
 
-	return messageChan, errorChan, nil
+	return nil
 }
 
 func startRtmSession(url, apiToken string) (string, string, error) {
@@ -77,27 +75,22 @@ func startRtmSession(url, apiToken string) (string, string, error) {
 	return rtmStartResponse.Url, rtmStartResponse.Self.Id, nil
 }
 
-func listenForMessages(url, botId string, messageChan chan<- *Message, errorChan chan<- error) error {
+func handleMessages(url, botId string, messageHandler func(string, string)) error {
 	ws, err := websocket.Dial(url, "", "https://api.slack.com/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to websocket: %s", err)
 	}
 
-	go func() {
-		for {
-			var event *rtmEvent
-			if err := websocket.JSON.Receive(ws, &event); err != nil {
-				close(messageChan)
-				errorChan <- fmt.Errorf("failed to parse message: %s", err)
-				close(errorChan)
-				return
-			}
-
-			if isMessage(event) && mentionsUser(event, botId) {
-				messageChan <- &Message{Text: event.Text, Channel: event.Channel}
-			}
+	for {
+		var event *rtmEvent
+		if err := websocket.JSON.Receive(ws, &event); err != nil {
+			return fmt.Errorf("failed to parse message: %s", err)
 		}
-	}()
+
+		if isMessage(event) && mentionsUser(event, botId) {
+			messageHandler(event.Text, event.Channel)
+		}
+	}
 
 	return nil
 }

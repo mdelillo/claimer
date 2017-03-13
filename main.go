@@ -28,29 +28,22 @@ func main() {
 	locker := NewLocker(fs, repo)
 
 	client := NewClient("https://slack.com", *apiToken)
-	messageChan, errorChan, err := client.Listen()
+	err = client.Listen(func(text, channel string) {
+		command := strings.Fields(text)[1]
+		pool := strings.Fields(text)[2]
+		switch command {
+		case "claim":
+			if err := locker.ClaimLock(pool); err != nil {
+				panic(err)
+			}
+			if err := client.PostMessage(channel, "Claimed "+pool); err != nil {
+				panic(err)
+			}
+		default:
+			panic("Command " + command + " not implemented")
+		}
+	})
 	if err != nil {
 		panic(err)
-	}
-
-	for {
-		select {
-		case message := <-messageChan:
-			command := strings.Fields(message.Text)[1]
-			pool := strings.Fields(message.Text)[2]
-			switch command {
-			case "claim":
-				if err := locker.ClaimLock(pool); err != nil {
-					panic(err)
-				}
-				if err := client.PostMessage(message.Channel, "Claimed "+pool); err != nil {
-					panic(err)
-				}
-			default:
-				panic("Command " + command + " not implemented")
-			}
-		case err := <-errorChan:
-			panic(err)
-		}
 	}
 }
