@@ -18,8 +18,10 @@ import (
 )
 
 var _ = Describe("Claimer", func() {
-	var claimer string
-	var gitDir string
+	var (
+		claimer string
+		gitDir string
+	)
 
 	BeforeSuite(func() {
 		var err error
@@ -32,6 +34,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	AfterSuite(func() {
+		gexec.KillAndWait()
 		gexec.CleanupBuildArtifacts()
 		os.RemoveAll(gitDir)
 	})
@@ -54,6 +57,7 @@ var _ = Describe("Claimer", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		defer resetClaimerTestPool(gitDir)
 
 		resetClaimerTestPool(gitDir)
 
@@ -63,7 +67,7 @@ var _ = Describe("Claimer", func() {
 			"-repoUrl", repoUrl,
 			"-deployKey", deployKey,
 		)
-		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+		_, err = gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Checking the status")
@@ -122,10 +126,6 @@ var _ = Describe("Claimer", func() {
 		// assert about repo
 		// @claimer status
 		// assert about status
-
-		session.Terminate().Wait()
-
-		resetClaimerTestPool(gitDir)
 	})
 })
 
