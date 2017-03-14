@@ -15,6 +15,7 @@ type gitRepo interface {
 //go:generate counterfeiter . fs
 type fs interface {
 	Ls(dir string) ([]string, error)
+	LsDirs(dir string) ([]string, error)
 	Mv(src, dst string) error
 }
 
@@ -84,4 +85,37 @@ func (l *locker) ReleaseLock(pool string) error {
 		return err
 	}
 	return nil
+}
+
+func (l *locker) Status() ([]string, []string, error) {
+	var claimedPools []string
+	var unclaimedPools []string
+
+	if err := l.gitRepo.CloneOrPull(); err != nil {
+		return nil, nil, err
+	}
+
+	pools, err := l.fs.LsDirs(l.gitRepo.Dir())
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, pool := range pools {
+		claimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "claimed"))
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(claimedLocks) > 0 {
+			claimedPools = append(claimedPools, pool)
+		} else {
+			unclaimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
+			if err != nil {
+				return nil, nil, err
+			}
+			if len(unclaimedLocks) > 0 {
+				unclaimedPools = append(unclaimedPools, pool)
+			}
+		}
+	}
+
+	return claimedPools, unclaimedPools, nil
 }

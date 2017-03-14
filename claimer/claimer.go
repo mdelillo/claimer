@@ -10,6 +10,7 @@ import (
 type locker interface {
 	ClaimLock(pool string) error
 	ReleaseLock(pool string) error
+	Status() (claimedLocks, unclaimedLocks []string, err error)
 }
 
 //go:generate counterfeiter . slackClient
@@ -55,6 +56,10 @@ func (c *claimer) handleMessage(text, channel string) error {
 		if err := c.release(text, channel); err != nil {
 			return err
 		}
+	case "status":
+		if err := c.status(text, channel); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown command '%s'", command)
 	}
@@ -84,6 +89,22 @@ func (c *claimer) release(text, channel string) error {
 		return err
 	}
 	if err := c.slackClient.PostMessage(channel, "Released "+pool); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *claimer) status(text, channel string) error {
+	claimedLocks, unclaimedLocks, err := c.locker.Status()
+	if err != nil {
+		return err
+	}
+	statusMessage := fmt.Sprintf(
+		"*Claimed:* %s\n*Unclaimed:* %s",
+		strings.Join(claimedLocks, ", "),
+		strings.Join(unclaimedLocks, ", "),
+	)
+	if err := c.slackClient.PostMessage(channel, statusMessage); err != nil {
 		return err
 	}
 	return nil

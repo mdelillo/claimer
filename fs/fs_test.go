@@ -85,6 +85,27 @@ var _ = Describe("Fs", func() {
 			})
 		})
 	})
+
+	Describe("LsDirs", func() {
+		It("lists non-hidden directories", func() {
+			firstDir := "some-directory"
+			secondDir := "some-other-directory"
+
+			mkdir(filepath.Join(tempDir, firstDir))
+			mkdir(filepath.Join(tempDir, secondDir))
+			mkdir(filepath.Join(tempDir, ".some-hidden-directory"))
+			writeFile(filepath.Join(tempDir, "some-file"), nil)
+
+			Expect(NewFs().LsDirs(tempDir)).To(Equal([]string{firstDir, secondDir}))
+		})
+
+		Context("when listing the directory fails", func() {
+			It("returns an error", func() {
+				_, err := NewFs().LsDirs("some-bad-dir")
+				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
+			})
+		})
+	})
 })
 
 func writeFile(path string, contents []byte) {

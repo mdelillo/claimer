@@ -19,6 +19,19 @@ type FakeFs struct {
 		result1 []string
 		result2 error
 	}
+	LsDirsStub        func(dir string) ([]string, error)
+	lsDirsMutex       sync.RWMutex
+	lsDirsArgsForCall []struct {
+		dir string
+	}
+	lsDirsReturns struct {
+		result1 []string
+		result2 error
+	}
+	lsDirsReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	MvStub        func(src, dst string) error
 	mvMutex       sync.RWMutex
 	mvArgsForCall []struct {
@@ -86,6 +99,57 @@ func (fake *FakeFs) LsReturnsOnCall(i int, result1 []string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeFs) LsDirs(dir string) ([]string, error) {
+	fake.lsDirsMutex.Lock()
+	ret, specificReturn := fake.lsDirsReturnsOnCall[len(fake.lsDirsArgsForCall)]
+	fake.lsDirsArgsForCall = append(fake.lsDirsArgsForCall, struct {
+		dir string
+	}{dir})
+	fake.recordInvocation("LsDirs", []interface{}{dir})
+	fake.lsDirsMutex.Unlock()
+	if fake.LsDirsStub != nil {
+		return fake.LsDirsStub(dir)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.lsDirsReturns.result1, fake.lsDirsReturns.result2
+}
+
+func (fake *FakeFs) LsDirsCallCount() int {
+	fake.lsDirsMutex.RLock()
+	defer fake.lsDirsMutex.RUnlock()
+	return len(fake.lsDirsArgsForCall)
+}
+
+func (fake *FakeFs) LsDirsArgsForCall(i int) string {
+	fake.lsDirsMutex.RLock()
+	defer fake.lsDirsMutex.RUnlock()
+	return fake.lsDirsArgsForCall[i].dir
+}
+
+func (fake *FakeFs) LsDirsReturns(result1 []string, result2 error) {
+	fake.LsDirsStub = nil
+	fake.lsDirsReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFs) LsDirsReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.LsDirsStub = nil
+	if fake.lsDirsReturnsOnCall == nil {
+		fake.lsDirsReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.lsDirsReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeFs) Mv(src string, dst string) error {
 	fake.mvMutex.Lock()
 	ret, specificReturn := fake.mvReturnsOnCall[len(fake.mvArgsForCall)]
@@ -140,6 +204,8 @@ func (fake *FakeFs) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.lsMutex.RLock()
 	defer fake.lsMutex.RUnlock()
+	fake.lsDirsMutex.RLock()
+	defer fake.lsDirsMutex.RUnlock()
 	fake.mvMutex.RLock()
 	defer fake.mvMutex.RUnlock()
 	return fake.invocations

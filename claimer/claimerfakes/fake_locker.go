@@ -28,6 +28,19 @@ type FakeLocker struct {
 	releaseLockReturnsOnCall map[int]struct {
 		result1 error
 	}
+	StatusStub        func() (claimedLocks, unclaimedLocks []string, err error)
+	statusMutex       sync.RWMutex
+	statusArgsForCall []struct{}
+	statusReturns     struct {
+		result1 []string
+		result2 []string
+		result3 error
+	}
+	statusReturnsOnCall map[int]struct {
+		result1 []string
+		result2 []string
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -128,6 +141,52 @@ func (fake *FakeLocker) ReleaseLockReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeLocker) Status() (claimedLocks, unclaimedLocks []string, err error) {
+	fake.statusMutex.Lock()
+	ret, specificReturn := fake.statusReturnsOnCall[len(fake.statusArgsForCall)]
+	fake.statusArgsForCall = append(fake.statusArgsForCall, struct{}{})
+	fake.recordInvocation("Status", []interface{}{})
+	fake.statusMutex.Unlock()
+	if fake.StatusStub != nil {
+		return fake.StatusStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.statusReturns.result1, fake.statusReturns.result2, fake.statusReturns.result3
+}
+
+func (fake *FakeLocker) StatusCallCount() int {
+	fake.statusMutex.RLock()
+	defer fake.statusMutex.RUnlock()
+	return len(fake.statusArgsForCall)
+}
+
+func (fake *FakeLocker) StatusReturns(result1 []string, result2 []string, result3 error) {
+	fake.StatusStub = nil
+	fake.statusReturns = struct {
+		result1 []string
+		result2 []string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeLocker) StatusReturnsOnCall(i int, result1 []string, result2 []string, result3 error) {
+	fake.StatusStub = nil
+	if fake.statusReturnsOnCall == nil {
+		fake.statusReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 []string
+			result3 error
+		})
+	}
+	fake.statusReturnsOnCall[i] = struct {
+		result1 []string
+		result2 []string
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -135,6 +194,8 @@ func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	defer fake.claimLockMutex.RUnlock()
 	fake.releaseLockMutex.RLock()
 	defer fake.releaseLockMutex.RUnlock()
+	fake.statusMutex.RLock()
+	defer fake.statusMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -21,20 +21,37 @@ func (*filesystem) Mv(src, dst string) error {
 }
 
 func (*filesystem) Ls(dir string) ([]string, error) {
-	var filenames []string
+	var files []string
 
-	files, err := ioutil.ReadDir(dir)
+	children, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list directory: %s", err)
 	}
 
-	for _, file := range files {
-		if !file.IsDir() && !isHidden(file) {
-			filenames = append(filenames, file.Name())
+	for _, child := range children {
+		if !child.IsDir() && !isHidden(child) {
+			files = append(files, child.Name())
 		}
 	}
 
-	return filenames, nil
+	return files, nil
+}
+
+func (*filesystem) LsDirs(dir string) ([]string, error) {
+	var dirs []string
+
+	children, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list directory: %s", err)
+	}
+
+	for _, child := range children {
+		if child.IsDir() && !isHidden(child) {
+			dirs = append(dirs, child.Name())
+		}
+	}
+
+	return dirs, nil
 }
 
 func isHidden(fileInfo os.FileInfo) bool {

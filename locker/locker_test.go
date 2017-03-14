@@ -204,4 +204,92 @@ var _ = Describe("Locker", func() {
 			})
 		})
 	})
+
+	Describe("Status", func() {
+		var (
+			fs      *lockerfakes.FakeFs
+			gitRepo *lockerfakes.FakeGitRepo
+		)
+
+		BeforeEach(func() {
+			fs = new(lockerfakes.FakeFs)
+			gitRepo = new(lockerfakes.FakeGitRepo)
+		})
+
+		It("returns lists of claimed and unclaimed pools", func() {
+			gitDir := "some-dir"
+			gitRepo.DirReturns(gitDir)
+
+			fs.LsDirsStub = func(dir string) ([]string, error) {
+				if dir == gitDir {
+					return []string{"pool-1", "pool-2", "empty-pool", "ful-pool"}, nil
+				} else {
+					return []string{}, nil
+				}
+			}
+			fs.LsStub = func(dir string) ([]string, error) {
+				if dir == filepath.Join(gitDir, "pool-1", "claimed") {
+					return []string{"lock"}, nil
+				} else if dir == filepath.Join(gitDir, "pool-2", "unclaimed") {
+					return []string{"lock"}, nil
+				} else if dir == filepath.Join(gitDir, "full-pool", "claimed") {
+					return []string{"lock"}, nil
+				} else if dir == filepath.Join(gitDir, "full-pool", "unclaimed") {
+					return []string{"lock"}, nil
+				} else {
+					return []string{}, nil
+				}
+			}
+
+			locker := NewLocker(fs, gitRepo)
+			claimedPools, unclaimedPools, err := locker.Status()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(claimedPools).To(Equal([]string{"pool-1"}))
+			Expect(unclaimedPools).To(Equal([]string{"pool-2"}))
+
+			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+		})
+
+		Context("when cloning the repo fails", func() {
+			It("returns an error", func() {
+				gitRepo.CloneOrPullReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				_, _, err := locker.Status()
+				Expect(err).To(MatchError("some-error"))
+			})
+		})
+
+		Context("when listing the git repo fails", func() {
+			It("returns an error", func() {
+				fs.LsDirsReturns(nil, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				_, _, err := locker.Status()
+				Expect(err).To(MatchError("some-error"))
+			})
+		})
+
+		Context("when listing claimed locks fails", func() {
+			It("returns an error", func() {
+				fs.LsDirsReturns([]string{"some-pool"}, nil)
+				fs.LsReturns(nil, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				_, _, err := locker.Status()
+				Expect(err).To(MatchError("some-error"))
+			})
+		})
+
+		Context("when listing unclaimed locks fails", func() {
+			It("returns an error", func() {
+				fs.LsDirsReturns([]string{"some-pool"}, nil)
+				fs.LsReturnsOnCall(1, nil, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				_, _, err := locker.Status()
+				Expect(err).To(MatchError("some-error"))
+			})
+		})
+	})
 })
