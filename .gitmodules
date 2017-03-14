@@ -16,3 +16,21 @@
 [submodule "vendor/github.com/maxbrunsfeld/counterfeiter"]
 	path = vendor/github.com/maxbrunsfeld/counterfeiter
 	url = https://github.com/maxbrunsfeld/counterfeiter.git
+[submodule "vendor/github.com/sergi/go-diff"]
+	path = vendor/github.com/sergi/go-diff
+	url = https://github.com/sergi/go-diff.git
+[submodule "vendor/golang.org/x/crypto"]
+	path = vendor/golang.org/x/crypto
+	url = https://github.com/golang/crypto.git
+[submodule "vendor/github.com/src-d/gcfg"]
+	path = vendor/github.com/src-d/gcfg
+	url = https://github.com/src-d/gcfg.git
+[submodule "vendor/gopkg.in/warnings.v0"]
+	path = vendor/gopkg.in/warnings.v0
+	url = https://github.com/go-warnings/warnings.git
+[submodule "vendor/srcd.works/go-billy.v1"]
+	path = vendor/srcd.works/go-billy.v1
+	url = https://github.com/src-d/go-billy.git
+[submodule "vendor/gopkg.in/src-d/go-billy.v2"]
+	path = vendor/gopkg.in/src-d/go-billy.v2
+	url = https://github.com/src-d/go-billy.git
