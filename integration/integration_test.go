@@ -102,16 +102,20 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
 
-		// @claimer release pool-1
-		// assert about response
+		By("Trying to release pool-1 again")
+		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("pool-1 is not claimed"))
 
 		By("Trying to claim non-existent pool")
 		postSlackMessage(fmt.Sprintf("<@%s> claim non-existent-pool", botId), channelId, apiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool is not available"))
 
-		// @claimer release non-existent-pool
-		// assert about error
+		By("Trying to release non-existent-pool")
+		postSlackMessage(fmt.Sprintf("<@%s> release non-existent-pool", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("non-existent-pool is not claimed"))
 
 		// @claimer claim pool-2
 		// assert about error
@@ -123,7 +127,6 @@ var _ = Describe("Claimer", func() {
 
 		resetClaimerTestPool(gitDir)
 	})
-
 })
 
 func getEnv(name string) string {

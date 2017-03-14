@@ -98,9 +98,22 @@ func (c *claimer) release(text, channel string) error {
 		return errors.New("no pool specified")
 	}
 	pool := strings.Fields(text)[2]
+
+	claimedPools, _, err := c.locker.Status()
+	if err != nil {
+		return err
+	}
+	if !contains(claimedPools, pool) {
+		if err := c.slackClient.PostMessage(channel, pool+" is not claimed"); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := c.locker.ReleaseLock(pool); err != nil {
 		return err
 	}
+
 	if err := c.slackClient.PostMessage(channel, "Released "+pool); err != nil {
 		return err
 	}
