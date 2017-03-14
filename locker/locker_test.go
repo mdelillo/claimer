@@ -11,17 +11,17 @@ import (
 )
 
 var _ = Describe("Locker", func() {
+	var (
+		fs      *lockerfakes.FakeFs
+		gitRepo *lockerfakes.FakeGitRepo
+	)
+
+	BeforeEach(func() {
+		fs = new(lockerfakes.FakeFs)
+		gitRepo = new(lockerfakes.FakeGitRepo)
+	})
+
 	Describe("ClaimLock", func() {
-		var (
-			fs      *lockerfakes.FakeFs
-			gitRepo *lockerfakes.FakeGitRepo
-		)
-
-		BeforeEach(func() {
-			fs = new(lockerfakes.FakeFs)
-			gitRepo = new(lockerfakes.FakeGitRepo)
-		})
-
 		It("claims the lock file in the git repo", func() {
 			pool := "some-pool"
 			gitDir := "some-dir"
@@ -109,16 +109,6 @@ var _ = Describe("Locker", func() {
 	})
 
 	Describe("ReleaseLock", func() {
-		var (
-			fs      *lockerfakes.FakeFs
-			gitRepo *lockerfakes.FakeGitRepo
-		)
-
-		BeforeEach(func() {
-			fs = new(lockerfakes.FakeFs)
-			gitRepo = new(lockerfakes.FakeGitRepo)
-		})
-
 		It("releases the lock file in the git repo", func() {
 			pool := "some-pool"
 			gitDir := "some-dir"
@@ -206,16 +196,6 @@ var _ = Describe("Locker", func() {
 	})
 
 	Describe("Status", func() {
-		var (
-			fs      *lockerfakes.FakeFs
-			gitRepo *lockerfakes.FakeGitRepo
-		)
-
-		BeforeEach(func() {
-			fs = new(lockerfakes.FakeFs)
-			gitRepo = new(lockerfakes.FakeGitRepo)
-		})
-
 		It("returns lists of claimed and unclaimed pools", func() {
 			gitDir := "some-dir"
 			gitRepo.DirReturns(gitDir)

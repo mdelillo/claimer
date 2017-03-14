@@ -66,8 +66,10 @@ var _ = Describe("Claimer", func() {
 		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		// @claimer status
-		// assert about initial status
+		By("Checking the status")
+		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
 
 		By("Claiming pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
@@ -82,8 +84,10 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("*Claimed:* pool-1\n*Unclaimed:* pool-2"))
 
-		// @claimer claim pool-1
-		// assert about error
+		By("Trying to claim pool-1 again")
+		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("pool-1 is not available"))
 
 		By("Releasing pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, apiToken)
@@ -101,8 +105,10 @@ var _ = Describe("Claimer", func() {
 		// @claimer release pool-1
 		// assert about response
 
-		// @claimer claim non-existent-pool
-		// assert about error
+		By("Trying to claim non-existent pool")
+		postSlackMessage(fmt.Sprintf("<@%s> claim non-existent-pool", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("non-existent-pool is not available"))
 
 		// @claimer release non-existent-pool
 		// assert about error

@@ -71,9 +71,22 @@ func (c *claimer) claim(text, channel string) error {
 		return errors.New("no pool specified")
 	}
 	pool := strings.Fields(text)[2]
+
+	_, unclaimedPools, err := c.locker.Status()
+	if err != nil {
+		return err
+	}
+	if !contains(unclaimedPools, pool) {
+		if err := c.slackClient.PostMessage(channel, pool+" is not available"); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := c.locker.ClaimLock(pool); err != nil {
 		return err
 	}
+
 	if err := c.slackClient.PostMessage(channel, "Claimed "+pool); err != nil {
 		return err
 	}
@@ -108,4 +121,13 @@ func (c *claimer) status(text, channel string) error {
 		return err
 	}
 	return nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, value := range slice {
+		if value == item {
+			return true
+		}
+	}
+	return false
 }
