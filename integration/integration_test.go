@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,12 +16,16 @@ import (
 	"path/filepath"
 	"srcd.works/go-git.v4"
 	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
+	"strings"
 )
 
 var _ = Describe("Claimer", func() {
 	var (
-		claimer string
-		gitDir string
+		claimer   string
+		gitDir    string
+		apiToken  string
+		repoUrl   string
+		deployKey string
 	)
 
 	BeforeSuite(func() {
@@ -31,6 +36,10 @@ var _ = Describe("Claimer", func() {
 
 		claimer, err = gexec.Build(filepath.Join("github.com", "mdelillo", "claimer"))
 		Expect(err).NotTo(HaveOccurred())
+
+		apiToken = getEnv("CLAIMER_TEST_API_TOKEN")
+		repoUrl = getEnv("CLAIMER_TEST_REPO_URL")
+		deployKey = getEnv("CLAIMER_TEST_DEPLOY_KEY")
 	})
 
 	AfterSuite(func() {
@@ -40,9 +49,6 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("claims and releases locks", func() {
-		apiToken := getEnv("CLAIMER_TEST_API_TOKEN")
-		repoUrl := getEnv("CLAIMER_TEST_REPO_URL")
-		deployKey := getEnv("CLAIMER_TEST_DEPLOY_KEY")
 		channelId := getEnv("CLAIMER_TEST_CHANNEL_ID")
 		botId := getEnv("CLAIMER_TEST_BOT_ID")
 
@@ -127,6 +133,46 @@ var _ = Describe("Claimer", func() {
 		// @claimer status
 		// assert about status
 	})
+
+	Context("when $PORT is set", func() {
+		var savedPort string
+
+		BeforeEach(func() {
+			savedPort = os.Getenv("PORT")
+		})
+
+		AfterEach(func() {
+			os.Setenv("PORT", savedPort)
+		})
+
+		It("responds to get requests on $PORT", func() {
+			port := freePort()
+			os.Setenv("PORT", port)
+
+			claimerCommand := exec.Command(
+				claimer,
+				"-apiToken", apiToken,
+				"-repoUrl", repoUrl,
+				"-deployKey", deployKey,
+			)
+			_, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func() error {
+				_, err := net.Dial("tcp", "127.0.0.1:"+port)
+				return err
+			}).Should(BeNil())
+
+			resp, err := http.Get("http://127.0.0.1:" + port)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(string(body)).To(Equal("I'm alive"))
+		})
+	})
 })
 
 func getEnv(name string) string {
@@ -208,4 +254,13 @@ func runGitCommand(dir string, args ...string) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
 	ExpectWithOffset(1, cmd.Run()).To(Succeed())
+}
+
+func freePort() string {
+	conn, err := net.Listen("tcp", "127.0.0.1:0")
+	Expect(err).NotTo(HaveOccurred())
+	defer conn.Close()
+
+	address := strings.Split(conn.Addr().String(), ":")
+	return address[1]
 }

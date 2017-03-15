@@ -9,6 +9,7 @@ import (
 	. "github.com/mdelillo/claimer/locker"
 	. "github.com/mdelillo/claimer/slack"
 	"io/ioutil"
+	"net/http"
 	"os"
 )
 
@@ -24,6 +25,10 @@ func main() {
 	}
 	defer os.RemoveAll(gitDir)
 
+	if port := os.Getenv("PORT"); port != "" {
+		startHealthcheckListener(port)
+	}
+
 	fs := NewFs()
 	repo := NewRepo(*repoUrl, *deployKey, gitDir)
 	locker := NewLocker(fs, repo)
@@ -32,4 +37,14 @@ func main() {
 	if err := claimer.Run(); err != nil {
 		fmt.Printf("Error: %s\n", err)
 	}
+	fmt.Println("All done: " + err.Error())
+}
+
+func startHealthcheckListener(port string) {
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, "I'm alive")
+		})
+		http.ListenAndServe("127.0.0.1:"+port, nil)
+	}()
 }
