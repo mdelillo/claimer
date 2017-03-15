@@ -60,7 +60,7 @@ func (r *repo) CommitAndPush(message string) error {
 	if output, err := r.run("add", "-A"); err != nil {
 		return fmt.Errorf("failed to stage files: %s", string(output))
 	}
-	if output, err := r.run("commit", "-m", message); err != nil {
+	if output, err := r.run("-c", "user.name=Claimer", "-c", "user.email=<>", "commit", "-m", message); err != nil {
 		return fmt.Errorf("failed to commit: %s", string(output))
 	}
 	if output, err := r.run("push", "origin", "master"); err != nil {

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"srcd.works/go-git.v4"
+	"strings"
 )
 
 var _ = Describe("Repo", func() {
@@ -138,8 +139,15 @@ var _ = Describe("Repo", func() {
 
 			repo := NewRepo(gitRemoteUrl, "", gitDir)
 			Expect(repo.CommitAndPush(commitMessage)).To(Succeed())
-			commit := runGitCommand(gitDir, "log", "origin/master", "-1", "--name-only", "--format='%s'")
-			Expect(commit).To(Equal(fmt.Sprintf("'%s'\n\n%s\n", commitMessage, newFileName)))
+
+			committedFiles := runGitCommand(gitDir, "log", "origin/master", "-1", "--name-only", "--format=")
+			Expect(committedFiles).To(Equal(newFileName))
+			commit := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%s")
+			Expect(commit).To(Equal(commitMessage))
+			committer := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%an")
+			Expect(committer).To(Equal("Claimer"))
+			email := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%ae")
+			Expect(email).To(BeEmpty())
 		})
 
 		Context("when committing fails", func() {
@@ -183,7 +191,7 @@ func runGitCommand(dir string, args ...string) string {
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), string(output))
-	return string(output)
+	return strings.TrimSpace(string(output))
 }
 
 func touchFile(path string) {
