@@ -130,10 +130,32 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("when parsing the message fails", func() {
+		Context("when parsing the event fails", func() {
 			It("returns an error", func() {
 				websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
 					ws.Write([]byte("some-bad-data"))
+				}))
+				defer websocketServer.Close()
+
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					defer GinkgoRecover()
+
+					w.Write([]byte(fmt.Sprintf(
+						`{"ok": true, "url": "%s", "self": {"id": "some-bot-id"}}`,
+						"ws://"+websocketServer.Listener.Addr().String(),
+					)))
+				}))
+				defer server.Close()
+
+				client := NewClient(server.URL, "")
+				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse event: ")))
+			})
+		})
+
+		Context("when parsing the message fails", func() {
+			It("returns an error", func() {
+				websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
+					ws.Write([]byte(`{"type": "message", "text": {"bad-structure": true}}`))
 				}))
 				defer websocketServer.Close()
 

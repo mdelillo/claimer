@@ -16,7 +16,10 @@ type client struct {
 }
 
 type rtmEvent struct {
-	Type    string
+	Type string
+}
+
+type message struct {
 	Text    string
 	Channel string
 }
@@ -34,7 +37,7 @@ func (c *client) Listen(messageHandler func(text, channel string)) error {
 		return err
 	}
 
-	if err := handleMessages(websocketUrl, botId, messageHandler); err != nil {
+	if err := handleEvents(websocketUrl, botId, messageHandler); err != nil {
 		return err
 	}
 
@@ -75,20 +78,40 @@ func startRtmSession(url, apiToken string) (string, string, error) {
 	return rtmStartResponse.Url, rtmStartResponse.Self.Id, nil
 }
 
-func handleMessages(url, botId string, messageHandler func(string, string)) error {
+func handleEvents(url, botId string, messageHandler func(string, string)) error {
 	ws, err := websocket.Dial(url, "", "https://api.slack.com/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to websocket: %s", err)
 	}
 
 	for {
-		var event *rtmEvent
-		if err := websocket.JSON.Receive(ws, &event); err != nil {
+		var data []byte
+		if err := websocket.Message.Receive(ws, &data); err != nil {
+			return fmt.Errorf("failed to receive event: %s", err)
+		}
+
+		if err := handleEvent(data, botId, messageHandler); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleEvent(data []byte, botId string, messageHandler func(string, string)) error {
+	var event *rtmEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		return fmt.Errorf("failed to parse event: %s", err)
+	}
+
+	if isMessage(event) {
+		var message *message
+		if err := json.Unmarshal(data, &message); err != nil {
 			return fmt.Errorf("failed to parse message: %s", err)
 		}
 
-		if isMessage(event) && mentionsUser(event, botId) {
-			messageHandler(event.Text, event.Channel)
+		if mentionsBot(message, botId) {
+			messageHandler(message.Text, message.Channel)
 		}
 	}
 
@@ -99,8 +122,8 @@ func isMessage(e *rtmEvent) bool {
 	return e.Type == "message"
 }
 
-func mentionsUser(e *rtmEvent, botId string) bool {
-	return strings.HasPrefix(e.Text, "<@"+botId+">")
+func mentionsBot(message *message, botId string) bool {
+	return strings.HasPrefix(message.Text, "<@"+botId+">")
 }
 
 func (c *client) PostMessage(channel, message string) error {
