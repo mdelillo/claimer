@@ -52,6 +52,10 @@ func (c *claimer) handleMessage(text, channel string) error {
 		if err := c.claim(text, channel); err != nil {
 			return err
 		}
+	case "help":
+		if err := c.help(channel); err != nil {
+			return err
+		}
 	case "release":
 		if err := c.release(text, channel); err != nil {
 			return err
@@ -88,6 +92,20 @@ func (c *claimer) claim(text, channel string) error {
 	}
 
 	if err := c.slackClient.PostMessage(channel, "Claimed "+pool); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *claimer) help(channel string) error {
+	helpText := "Available commands:\n" +
+		"```\n" +
+		"  claim <env>     Claim an unclaimed environment\n" +
+		"  release <env>   Release a claimed environment\n" +
+		"  status          Show claimed and unclaimed environments\n" +
+		"  help            Display this message\n" +
+		"```"
+	if err := c.slackClient.PostMessage(channel, helpText); err != nil {
 		return err
 	}
 	return nil

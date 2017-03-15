@@ -319,6 +319,47 @@ var _ = Describe("Claimer", func() {
 			})
 		})
 
+		Context("when a help message is received", func() {
+			It("posts the help message to slack", func() {
+				channel := "some-channel"
+
+				slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+					messageHandler("@some-bot help", channel)
+					return nil
+				}
+
+				claimer := New(locker, slackClient)
+				Expect(claimer.Run()).To(Succeed())
+
+				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(postChannel).To(Equal(channel))
+				Expect(postMessage).To(Equal(
+					"Available commands:\n" +
+						"```\n" +
+						"  claim <env>     Claim an unclaimed environment\n" +
+						"  release <env>   Release a claimed environment\n" +
+						"  status          Show claimed and unclaimed environments\n" +
+						"  help            Display this message\n"+
+						"```",
+				))
+			})
+
+			Context("when posting to slack fails", func() {
+				It("returns an error", func() {
+					slackClient.ListenStub = func(messageHandler func(text, channel string)) error {
+						messageHandler("@some-bot help", "some-channel")
+						return nil
+					}
+
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					claimer := New(locker, slackClient)
+					Expect(claimer.Run()).To(MatchError("some-error"))
+				})
+			})
+		})
+
 		Context("when listening to slack messages fails", func() {
 			It("returns an error", func() {
 				slackClient.ListenReturns(errors.New("some-error"))

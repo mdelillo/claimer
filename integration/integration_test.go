@@ -76,6 +76,11 @@ var _ = Describe("Claimer", func() {
 		_, err = gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Displaying the help message")
+		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, apiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(ContainSubstring("Available commands:"))
+
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, apiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
