@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	. "github.com/mdelillo/claimer/claimer"
 	. "github.com/mdelillo/claimer/fs"
 	. "github.com/mdelillo/claimer/git"
@@ -19,6 +20,10 @@ func main() {
 	deployKey := flag.String("deployKey", "", "Deploy key for Github")
 	flag.Parse()
 
+	logger := logrus.New()
+	logger.Out = os.Stdout
+	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
+
 	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
 	if err != nil {
 		fmt.Printf("Error creating temp directory: %s\n", err)
@@ -26,6 +31,7 @@ func main() {
 	defer os.RemoveAll(gitDir)
 
 	if port := os.Getenv("PORT"); port != "" {
+		logger.Info("Starting healthcheck listener on port " + port)
 		startHealthcheckListener(port)
 	}
 
@@ -33,11 +39,12 @@ func main() {
 	repo := NewRepo(*repoUrl, *deployKey, gitDir)
 	locker := NewLocker(fs, repo)
 	slackClient := NewClient("https://slack.com", *apiToken)
-	claimer := New(locker, slackClient)
+	claimer := New(locker, slackClient, logger)
+	logger.Info("Claimer starting")
 	if err := claimer.Run(); err != nil {
 		fmt.Printf("Error: %s\n", err)
 	}
-	fmt.Println("All done: " + err.Error())
+	logger.Info("Claimer finished")
 }
 
 func startHealthcheckListener(port string) {

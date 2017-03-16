@@ -3,6 +3,7 @@ package claimer
 import (
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"strings"
 )
 
@@ -22,24 +23,28 @@ type slackClient interface {
 type claimer struct {
 	locker      locker
 	slackClient slackClient
+
+	logger *logrus.Logger
 }
 
-func New(locker locker, slackClient slackClient) *claimer {
+func New(locker locker, slackClient slackClient, logger *logrus.Logger) *claimer {
 	return &claimer{
 		locker:      locker,
 		slackClient: slackClient,
+		logger:      logger,
 	}
 }
 
 func (c *claimer) Run() error {
-	var messageHandlingErr error
-	err := c.slackClient.Listen(func(text, channel string) {
-		messageHandlingErr = c.handleMessage(text, channel)
+	return c.slackClient.Listen(func(text, channel string) {
+		if err := c.handleMessage(text, channel); err != nil {
+			c.logger.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"text":    text,
+				"channel": channel,
+			}).Error("Failed to handle message")
+		}
 	})
-	if err != nil {
-		return err
-	}
-	return messageHandlingErr
 }
 
 func (c *claimer) handleMessage(text, channel string) error {

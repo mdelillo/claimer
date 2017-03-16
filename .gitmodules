@@ -34,3 +34,6 @@
 [submodule "vendor/gopkg.in/src-d/go-billy.v2"]
 	path = vendor/gopkg.in/src-d/go-billy.v2
 	url = https://github.com/src-d/go-billy.git
+[submodule "vendor/github.com/Sirupsen/logrus"]
+	path = vendor/github.com/Sirupsen/logrus
+	url = https://github.com/Sirupsen/logrus.git

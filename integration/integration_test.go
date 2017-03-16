@@ -5,6 +5,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
@@ -73,8 +74,10 @@ var _ = Describe("Claimer", func() {
 			"-repoUrl", repoUrl,
 			"-deployKey", deployKey,
 		)
-		_, err = gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(session).Should(gbytes.Say("Claimer starting"))
 
 		By("Displaying the help message")
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, apiToken)
@@ -160,8 +163,10 @@ var _ = Describe("Claimer", func() {
 				"-repoUrl", repoUrl,
 				"-deployKey", deployKey,
 			)
-			_, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+			session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(session).Should(gbytes.Say("Starting healthcheck listener on port " + port))
 
 			Eventually(func() error {
 				_, err := net.Dial("tcp", "127.0.0.1:"+port)
