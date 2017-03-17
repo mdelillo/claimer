@@ -18,6 +18,7 @@ import (
 	"srcd.works/go-git.v4"
 	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
 	"strings"
+	"time"
 )
 
 var _ = Describe("Claimer", func() {
@@ -52,6 +53,8 @@ var _ = Describe("Claimer", func() {
 	It("claims and releases locks", func() {
 		channelId := getEnv("CLAIMER_TEST_CHANNEL_ID")
 		botId := getEnv("CLAIMER_TEST_BOT_ID")
+		userApiToken := getEnv("CLAIMER_TEST_USER_API_TOKEN")
+		username := getEnv("CLAIMER_TEST_USERNAME")
 
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
 		Expect(err).NotTo(HaveOccurred())
@@ -80,17 +83,17 @@ var _ = Describe("Claimer", func() {
 		Eventually(session).Should(gbytes.Say("Claimer starting"))
 
 		By("Displaying the help message")
-		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(ContainSubstring("Available commands:"))
 
 		By("Checking the status")
-		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
 
 		By("Claiming pool-1")
-		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Claimed pool-1"))
 		updateGitRepo(gitDir)
@@ -98,17 +101,26 @@ var _ = Describe("Claimer", func() {
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).NotTo(BeAnExistingFile())
 
 		By("Checking the status")
-		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("*Claimed:* pool-1\n*Unclaimed:* pool-2"))
 
+		By("Checking the owner of pool-1")
+		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
+		ownerMessage := fmt.Sprintf("pool-1 was claimed by %s on ", username)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").Should(ContainSubstring(ownerMessage))
+		date := strings.TrimPrefix(latestSlackMessage(channelId, apiToken), ownerMessage)
+		parsedDate, err := time.Parse("Mon Jan 2 15:04:05 2006 -0700", date)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsedDate).To(BeTemporally("~", time.Now(), 10*time.Second))
+
 		By("Trying to claim pool-1 again")
-		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("pool-1 is not available"))
 
 		By("Releasing pool-1")
-		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Released pool-1"))
 		updateGitRepo(gitDir)
@@ -116,22 +128,27 @@ var _ = Describe("Claimer", func() {
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).NotTo(BeAnExistingFile())
 
 		By("Checking the status")
-		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
 
+		By("Checking the status of pool-1")
+		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("pool-1 is not claimed"))
+
 		By("Trying to release pool-1 again")
-		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("pool-1 is not claimed"))
 
 		By("Trying to claim non-existent pool")
-		postSlackMessage(fmt.Sprintf("<@%s> claim non-existent-pool", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> claim non-existent-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool is not available"))
 
 		By("Trying to release non-existent-pool")
-		postSlackMessage(fmt.Sprintf("<@%s> release non-existent-pool", botId), channelId, apiToken)
+		postSlackMessage(fmt.Sprintf("<@%s> release non-existent-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool is not claimed"))
 
@@ -200,8 +217,7 @@ func postSlackMessage(text, channelId, apiToken string) {
 			"token":    {apiToken},
 			"channel":  {channelId},
 			"text":     {text},
-			"as_user":  {"false"},
-			"username": {"claimer-integration-test"},
+			"as_user":  {"true"},
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

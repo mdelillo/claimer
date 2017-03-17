@@ -6,10 +6,10 @@ import (
 )
 
 type FakeSlackClient struct {
-	ListenStub        func(messageHandler func(text, channel string)) error
+	ListenStub        func(messageHandler func(text, channel, username string)) error
 	listenMutex       sync.RWMutex
 	listenArgsForCall []struct {
-		messageHandler func(text, channel string)
+		messageHandler func(text, channel, username string)
 	}
 	listenReturns struct {
 		result1 error
@@ -33,11 +33,11 @@ type FakeSlackClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSlackClient) Listen(messageHandler func(text, channel string)) error {
+func (fake *FakeSlackClient) Listen(messageHandler func(text, channel, username string)) error {
 	fake.listenMutex.Lock()
 	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
 	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
-		messageHandler func(text, channel string)
+		messageHandler func(text, channel, username string)
 	}{messageHandler})
 	fake.recordInvocation("Listen", []interface{}{messageHandler})
 	fake.listenMutex.Unlock()
@@ -56,7 +56,7 @@ func (fake *FakeSlackClient) ListenCallCount() int {
 	return len(fake.listenArgsForCall)
 }
 
-func (fake *FakeSlackClient) ListenArgsForCall(i int) func(text, channel string) {
+func (fake *FakeSlackClient) ListenArgsForCall(i int) func(text, channel, username string) {
 	fake.listenMutex.RLock()
 	defer fake.listenMutex.RUnlock()
 	return fake.listenArgsForCall[i].messageHandler

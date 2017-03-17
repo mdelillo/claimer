@@ -11,8 +11,9 @@ import (
 )
 
 type client struct {
-	apiToken string
-	url      string
+	apiToken       string
+	url            string
+	requestFactory RequestFactory
 }
 
 type rtmEvent struct {
@@ -20,32 +21,34 @@ type rtmEvent struct {
 }
 
 type message struct {
-	Text    string
-	Channel string
+	Text     string
+	Channel  string
+	User string
 }
 
-func NewClient(url, apiToken string) *client {
+func NewClient(url, apiToken string, requestFactory RequestFactory) *client {
 	return &client{
-		apiToken: apiToken,
-		url:      url,
+		apiToken:       apiToken,
+		url:            url,
+		requestFactory: requestFactory,
 	}
 }
 
-func (c *client) Listen(messageHandler func(text, channel string)) error {
-	websocketUrl, botId, err := startRtmSession(c.url, c.apiToken)
+func (c *client) Listen(messageHandler func(text, channel, username string)) error {
+	websocketUrl, botId, err := c.startRtmSession()
 	if err != nil {
 		return err
 	}
 
-	if err := handleEvents(websocketUrl, botId, messageHandler); err != nil {
+	if err := c.handleEvents(websocketUrl, botId, messageHandler); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func startRtmSession(url, apiToken string) (string, string, error) {
-	resp, err := http.Get(url + "/api/rtm.start?token=" + apiToken)
+func (c *client) startRtmSession() (string, string, error) {
+	resp, err := http.Get(c.url + "/api/rtm.start?token=" + c.apiToken)
 	if err != nil {
 		return "", "", err
 	}
@@ -78,8 +81,8 @@ func startRtmSession(url, apiToken string) (string, string, error) {
 	return rtmStartResponse.Url, rtmStartResponse.Self.Id, nil
 }
 
-func handleEvents(url, botId string, messageHandler func(string, string)) error {
-	ws, err := websocket.Dial(url, "", "https://api.slack.com/")
+func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(string, string, string)) error {
+	ws, err := websocket.Dial(websocketUrl, "", "https://api.slack.com/")
 	if err != nil {
 		return fmt.Errorf("failed to connect to websocket: %s", err)
 	}
@@ -90,7 +93,7 @@ func handleEvents(url, botId string, messageHandler func(string, string)) error 
 			return fmt.Errorf("failed to receive event: %s", err)
 		}
 
-		if err := handleEvent(data, botId, messageHandler); err != nil {
+		if err := c.handleEvent(data, botId, messageHandler); err != nil {
 			return err
 		}
 	}
@@ -98,7 +101,7 @@ func handleEvents(url, botId string, messageHandler func(string, string)) error 
 	return nil
 }
 
-func handleEvent(data []byte, botId string, messageHandler func(string, string)) error {
+func (c *client) handleEvent(data []byte, botId string, messageHandler func(string, string, string)) error {
 	var event *rtmEvent
 	if err := json.Unmarshal(data, &event); err != nil {
 		return fmt.Errorf("failed to parse event: %s", err)
@@ -111,7 +114,12 @@ func handleEvent(data []byte, botId string, messageHandler func(string, string))
 		}
 
 		if mentionsBot(message, botId) {
-			messageHandler(message.Text, message.Channel)
+			request := c.requestFactory.NewUsernameRequest(message.User)
+			username, err := request.Execute()
+			if err != nil {
+				return fmt.Errorf("failed to get username for %s: %s", message.User, err)
+			}
+			messageHandler(message.Text, message.Channel, username)
 		}
 	}
 

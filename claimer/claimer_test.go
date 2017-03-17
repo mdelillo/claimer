@@ -21,6 +21,7 @@ var _ = Describe("Claimer", func() {
 			logHook     *logrustest.Hook
 			channel     = "some-channel"
 			pool        = "some-pool"
+			username    = "some-username"
 		)
 
 		BeforeEach(func() {
@@ -35,8 +36,8 @@ var _ = Describe("Claimer", func() {
 
 		Context("when a claim command is received", func() {
 			It("claims the lock and posts to slack", func() {
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(fmt.Sprintf("@some-bot claim %s", pool), channel)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(fmt.Sprintf("@some-bot claim %s", pool), channel, username)
 					return nil
 				}
 				locker.StatusReturns([]string{}, []string{pool}, nil)
@@ -44,7 +45,9 @@ var _ = Describe("Claimer", func() {
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
 
 				Expect(locker.ClaimLockCallCount()).To(Equal(1))
-				Expect(locker.ClaimLockArgsForCall(0)).To(Equal(pool))
+				actualPool, actualUsername := locker.ClaimLockArgsForCall(0)
+				Expect(actualPool).To(Equal(pool))
+				Expect(actualUsername).To(Equal(username))
 
 				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
@@ -55,21 +58,21 @@ var _ = Describe("Claimer", func() {
 			Context("when no pool is specified", func() {
 				It("logs an error", func() {
 					text := "@some-bot claim"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "no pool specified", text, channel)
+					expectLoggedMessageHandlingError(logHook, "no pool specified", text, channel, username)
 				})
 			})
 
 			Context("when the pool is not available", func() {
 				It("responds in slack", func() {
 					text := fmt.Sprintf("@some-bot claim %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{}, nil)
@@ -88,59 +91,201 @@ var _ = Describe("Claimer", func() {
 			Context("when checking the status fails", func() {
 				It("logs an error", func() {
 					text := "@some-bot claim some-pool"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns(nil, nil, errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when posting error to slack fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot claim %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{}, nil)
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when claiming the lock fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot claim %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{pool}, nil)
 					locker.ClaimLockReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when posting success to slack fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot claim %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{pool}, nil)
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+				})
+			})
+		})
+
+		Context("when a help command is received", func() {
+			It("posts the help message to slack", func() {
+				text := "@some-bot help"
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(text, channel, username)
+					return nil
+				}
+
+				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+
+				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(postChannel).To(Equal(channel))
+				Expect(postMessage).To(Equal(
+					"Available commands:\n" +
+						"```\n" +
+						"  claim <env>     Claim an unclaimed environment\n" +
+						"  owner <env>     Show the user who claimed the environment\n" +
+						"  release <env>   Release a claimed environment\n" +
+						"  status          Show claimed and unclaimed environments\n" +
+						"  help            Display this message\n" +
+						"```",
+				))
+			})
+
+			Context("when posting to slack fails", func() {
+				It("logs an error", func() {
+					text := "@some-bot help"
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+				})
+			})
+		})
+
+		Context("when an owner command is received", func() {
+			Context("when the lock is claimed", func() {
+				It("posts the owner of the lock to slack", func() {
+					claimDate := "some-date"
+
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(fmt.Sprintf("@some-bot owner %s", pool), channel, username)
+						return nil
+					}
+					locker.StatusReturns([]string{pool}, []string{}, nil)
+					locker.OwnerReturns(username, claimDate, nil)
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+
+					Expect(locker.OwnerCallCount()).To(Equal(1))
+					Expect(locker.OwnerArgsForCall(0)).To(Equal(pool))
+
+					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+					Expect(postChannel).To(Equal(channel))
+					Expect(postMessage).To(Equal(fmt.Sprintf("%s was claimed by %s on %s", pool, username, claimDate)))
+				})
+			})
+
+			Context("when the lock is not claimed", func() {
+				It("posts in slack", func() {
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(fmt.Sprintf("@some-bot owner %s", pool), channel, username)
+						return nil
+					}
+					locker.StatusReturns([]string{}, []string{}, nil)
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+
+					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+					Expect(postChannel).To(Equal(channel))
+					Expect(postMessage).To(Equal(pool + " is not claimed"))
+				})
+			})
+
+			Context("when no pool is specified", func() {
+				It("logs an error", func() {
+					text := "@some-bot owner"
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+					expectLoggedMessageHandlingError(logHook, "no pool specified", text, channel, username)
+				})
+			})
+
+			Context("when posting unclaimed in slack fails", func() {
+				It("logs an error", func() {
+					text := fmt.Sprintf("@some-bot owner %s", pool)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+					locker.StatusReturns([]string{}, []string{}, nil)
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+				})
+			})
+
+			Context("when checking the owner fails", func() {
+				It("logs an error", func() {
+					text := fmt.Sprintf("@some-bot owner %s", pool)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+					locker.StatusReturns([]string{pool}, []string{}, nil)
+					locker.OwnerReturns("", "", errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+				})
+			})
+
+			Context("when posting owner to slack fails", func() {
+				It("logs an error", func() {
+					text := fmt.Sprintf("@some-bot owner %s", pool)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+					locker.StatusReturns([]string{pool}, []string{}, nil)
+					locker.OwnerReturns("", "", nil)
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 		})
@@ -148,8 +293,8 @@ var _ = Describe("Claimer", func() {
 		Context("when a release command is received", func() {
 			It("releases the lock and posts to slack", func() {
 				text := fmt.Sprintf("@some-bot release %s", pool)
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(text, channel)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(text, channel, username)
 					return nil
 				}
 				locker.StatusReturns([]string{pool}, []string{}, nil)
@@ -157,7 +302,9 @@ var _ = Describe("Claimer", func() {
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
 
 				Expect(locker.ReleaseLockCallCount()).To(Equal(1))
-				Expect(locker.ReleaseLockArgsForCall(0)).To(Equal(pool))
+				actualPool, actualUsername := locker.ReleaseLockArgsForCall(0)
+				Expect(actualPool).To(Equal(pool))
+				Expect(actualUsername).To(Equal(username))
 
 				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
@@ -168,21 +315,21 @@ var _ = Describe("Claimer", func() {
 			Context("when no pool is specified", func() {
 				It("logs an error", func() {
 					text := "@some-bot release"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "no pool specified", text, channel)
+					expectLoggedMessageHandlingError(logHook, "no pool specified", text, channel, username)
 				})
 			})
 
 			Context("when the pool is not claimed", func() {
 				It("responds in slack", func() {
 					text := fmt.Sprintf("@some-bot release %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{}, nil)
@@ -201,37 +348,37 @@ var _ = Describe("Claimer", func() {
 			Context("when checking the status fails", func() {
 				It("logs an error", func() {
 					text := "@some-bot release some-pool"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns(nil, nil, errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when posting error to slack fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot release %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{}, []string{}, nil)
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when releasing the lock fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot release %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{pool}, []string{}, nil)
@@ -239,15 +386,15 @@ var _ = Describe("Claimer", func() {
 					locker.ReleaseLockReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when posting to slack fails", func() {
 				It("logs an error", func() {
 					text := fmt.Sprintf("@some-bot release %s", pool)
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 					locker.StatusReturns([]string{pool}, []string{}, nil)
@@ -255,7 +402,7 @@ var _ = Describe("Claimer", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 		})
@@ -263,8 +410,8 @@ var _ = Describe("Claimer", func() {
 		Context("when a status command is received", func() {
 			It("posts the status of locks to slack", func() {
 				text := "@some-bot status"
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(text, channel)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(text, channel, username)
 					return nil
 				}
 
@@ -287,70 +434,30 @@ var _ = Describe("Claimer", func() {
 			Context("when getting the status fails", func() {
 				It("logs an error", func() {
 					text := "@some-bot status"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 
 					locker.StatusReturns(nil, nil, errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 
 			Context("when posting to slack fails", func() {
 				It("logs an error", func() {
 					text := "@some-bot status"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
 						return nil
 					}
 
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
-				})
-			})
-		})
-
-		Context("when a help command is received", func() {
-			It("posts the help message to slack", func() {
-				text := "@some-bot help"
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(text, channel)
-					return nil
-				}
-
-				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-
-				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
-				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-				Expect(postChannel).To(Equal(channel))
-				Expect(postMessage).To(Equal(
-					"Available commands:\n" +
-						"```\n" +
-						"  claim <env>     Claim an unclaimed environment\n" +
-						"  release <env>   Release a claimed environment\n" +
-						"  status          Show claimed and unclaimed environments\n" +
-						"  help            Display this message\n" +
-						"```",
-				))
-			})
-
-			Context("when posting to slack fails", func() {
-				It("logs an error", func() {
-					text := "@some-bot help"
-					slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-						messageHandler(text, channel)
-						return nil
-					}
-
-					slackClient.PostMessageReturns(errors.New("some-error"))
-
-					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel)
+					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
 				})
 			})
 		})
@@ -366,36 +473,37 @@ var _ = Describe("Claimer", func() {
 		Context("when no command is specified", func() {
 			It("logs an error", func() {
 				text := "@some-bot"
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(text, channel)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(text, channel, username)
 					return nil
 				}
 
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-				expectLoggedMessageHandlingError(logHook, "no command specified", text, channel)
+				expectLoggedMessageHandlingError(logHook, "no command specified", text, channel, username)
 			})
 		})
 
 		Context("when an unknown command is received", func() {
 			It("logs an error", func() {
 				text := "@some-bot some-bad-command"
-				slackClient.ListenStub = func(messageHandler func(_, _ string)) error {
-					messageHandler(text, channel)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(text, channel, username)
 					return nil
 				}
 
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-				expectLoggedMessageHandlingError(logHook, "unknown command 'some-bad-command'", text, channel)
+				expectLoggedMessageHandlingError(logHook, "unknown command 'some-bad-command'", text, channel, username)
 			})
 		})
 	})
 })
 
-func expectLoggedMessageHandlingError(logHook *logrustest.Hook, err string, text string, channel string) {
+func expectLoggedMessageHandlingError(logHook *logrustest.Hook, err, text, channel, username string) {
 	ExpectWithOffset(1, len(logHook.Entries)).To(Equal(1))
 	ExpectWithOffset(1, logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
 	ExpectWithOffset(1, logHook.LastEntry().Message).To(Equal("Failed to handle message"))
 	ExpectWithOffset(1, logHook.LastEntry().Data["error"]).To(Equal(err))
 	ExpectWithOffset(1, logHook.LastEntry().Data["text"]).To(Equal(text))
 	ExpectWithOffset(1, logHook.LastEntry().Data["channel"]).To(Equal(channel))
+	ExpectWithOffset(1, logHook.LastEntry().Data["username"]).To(Equal(username))
 }

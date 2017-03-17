@@ -15,10 +15,11 @@ type FakeGitRepo struct {
 	cloneOrPullReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CommitAndPushStub        func(message string) error
+	CommitAndPushStub        func(message, user string) error
 	commitAndPushMutex       sync.RWMutex
 	commitAndPushArgsForCall []struct {
 		message string
+		user    string
 	}
 	commitAndPushReturns struct {
 		result1 error
@@ -34,6 +35,21 @@ type FakeGitRepo struct {
 	}
 	dirReturnsOnCall map[int]struct {
 		result1 string
+	}
+	LatestCommitStub        func(pool string) (committer, date string, err error)
+	latestCommitMutex       sync.RWMutex
+	latestCommitArgsForCall []struct {
+		pool string
+	}
+	latestCommitReturns struct {
+		result1 string
+		result2 string
+		result3 error
+	}
+	latestCommitReturnsOnCall map[int]struct {
+		result1 string
+		result2 string
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -79,16 +95,17 @@ func (fake *FakeGitRepo) CloneOrPullReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeGitRepo) CommitAndPush(message string) error {
+func (fake *FakeGitRepo) CommitAndPush(message string, user string) error {
 	fake.commitAndPushMutex.Lock()
 	ret, specificReturn := fake.commitAndPushReturnsOnCall[len(fake.commitAndPushArgsForCall)]
 	fake.commitAndPushArgsForCall = append(fake.commitAndPushArgsForCall, struct {
 		message string
-	}{message})
-	fake.recordInvocation("CommitAndPush", []interface{}{message})
+		user    string
+	}{message, user})
+	fake.recordInvocation("CommitAndPush", []interface{}{message, user})
 	fake.commitAndPushMutex.Unlock()
 	if fake.CommitAndPushStub != nil {
-		return fake.CommitAndPushStub(message)
+		return fake.CommitAndPushStub(message, user)
 	}
 	if specificReturn {
 		return ret.result1
@@ -102,10 +119,10 @@ func (fake *FakeGitRepo) CommitAndPushCallCount() int {
 	return len(fake.commitAndPushArgsForCall)
 }
 
-func (fake *FakeGitRepo) CommitAndPushArgsForCall(i int) string {
+func (fake *FakeGitRepo) CommitAndPushArgsForCall(i int) (string, string) {
 	fake.commitAndPushMutex.RLock()
 	defer fake.commitAndPushMutex.RUnlock()
-	return fake.commitAndPushArgsForCall[i].message
+	return fake.commitAndPushArgsForCall[i].message, fake.commitAndPushArgsForCall[i].user
 }
 
 func (fake *FakeGitRepo) CommitAndPushReturns(result1 error) {
@@ -167,6 +184,60 @@ func (fake *FakeGitRepo) DirReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeGitRepo) LatestCommit(pool string) (committer, date string, err error) {
+	fake.latestCommitMutex.Lock()
+	ret, specificReturn := fake.latestCommitReturnsOnCall[len(fake.latestCommitArgsForCall)]
+	fake.latestCommitArgsForCall = append(fake.latestCommitArgsForCall, struct {
+		pool string
+	}{pool})
+	fake.recordInvocation("LatestCommit", []interface{}{pool})
+	fake.latestCommitMutex.Unlock()
+	if fake.LatestCommitStub != nil {
+		return fake.LatestCommitStub(pool)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.latestCommitReturns.result1, fake.latestCommitReturns.result2, fake.latestCommitReturns.result3
+}
+
+func (fake *FakeGitRepo) LatestCommitCallCount() int {
+	fake.latestCommitMutex.RLock()
+	defer fake.latestCommitMutex.RUnlock()
+	return len(fake.latestCommitArgsForCall)
+}
+
+func (fake *FakeGitRepo) LatestCommitArgsForCall(i int) string {
+	fake.latestCommitMutex.RLock()
+	defer fake.latestCommitMutex.RUnlock()
+	return fake.latestCommitArgsForCall[i].pool
+}
+
+func (fake *FakeGitRepo) LatestCommitReturns(result1 string, result2 string, result3 error) {
+	fake.LatestCommitStub = nil
+	fake.latestCommitReturns = struct {
+		result1 string
+		result2 string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeGitRepo) LatestCommitReturnsOnCall(i int, result1 string, result2 string, result3 error) {
+	fake.LatestCommitStub = nil
+	if fake.latestCommitReturnsOnCall == nil {
+		fake.latestCommitReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 string
+			result3 error
+		})
+	}
+	fake.latestCommitReturnsOnCall[i] = struct {
+		result1 string
+		result2 string
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeGitRepo) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -176,6 +247,8 @@ func (fake *FakeGitRepo) Invocations() map[string][][]interface{} {
 	defer fake.commitAndPushMutex.RUnlock()
 	fake.dirMutex.RLock()
 	defer fake.dirMutex.RUnlock()
+	fake.latestCommitMutex.RLock()
+	defer fake.latestCommitMutex.RUnlock()
 	return fake.invocations
 }
 

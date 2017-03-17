@@ -134,26 +134,27 @@ var _ = Describe("Repo", func() {
 		It("commits and pushes all changes to the repo", func() {
 			commitMessage := "some-commit-message"
 			newFileName := "some-new-file"
+			author := "some-author"
 
 			touchFile(filepath.Join(gitDir, newFileName))
 
 			repo := NewRepo(gitRemoteUrl, "", gitDir)
-			Expect(repo.CommitAndPush(commitMessage)).To(Succeed())
+			Expect(repo.CommitAndPush(commitMessage, author)).To(Succeed())
 
 			committedFiles := runGitCommand(gitDir, "log", "origin/master", "-1", "--name-only", "--format=")
 			Expect(committedFiles).To(Equal(newFileName))
 			commit := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%s")
 			Expect(commit).To(Equal(commitMessage))
-			committer := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%an")
+			actualAuthor := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%an")
+			Expect(actualAuthor).To(Equal(author))
+			committer := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%cn")
 			Expect(committer).To(Equal("Claimer"))
-			email := runGitCommand(gitDir, "log", "origin/master", "-1", "--format=%ae")
-			Expect(email).To(BeEmpty())
 		})
 
 		Context("when committing fails", func() {
 			It("returns an error", func() {
 				repo := NewRepo(gitRemoteUrl, "", gitDir)
-				err := repo.CommitAndPush("some-commit-message")
+				err := repo.CommitAndPush("some-commit-message", "some-author")
 				Expect(err).To(MatchError(MatchRegexp("(?s:failed to commit: .*nothing to commit)")))
 			})
 		})
@@ -164,7 +165,7 @@ var _ = Describe("Repo", func() {
 				touchFile(filepath.Join(gitDir, "some-new-file"))
 
 				repo := NewRepo(gitRemoteUrl, "", gitDir)
-				err := repo.CommitAndPush("some-commit-message")
+				err := repo.CommitAndPush("some-commit-message", "some-author")
 				Expect(err).To(MatchError(MatchRegexp("(?s:failed to push: .*'origin' does not appear to be a git repository)")))
 			})
 		})
@@ -174,6 +175,53 @@ var _ = Describe("Repo", func() {
 		It("returns the git directory", func() {
 			repo := NewRepo("", "", "some-dir")
 			Expect(repo.Dir()).To(Equal("some-dir"))
+		})
+	})
+
+	Describe("LatestCommit", func() {
+		var gitRemoteDir string
+		var gitRemoteUrl string
+
+		BeforeEach(func() {
+			var err error
+
+			gitRemoteDir, err = ioutil.TempDir("", "claimer-test-git-remote")
+			Expect(err).NotTo(HaveOccurred())
+			gitRemoteUrl = "file://" + gitRemoteDir
+
+			runGitCommand(gitRemoteDir, "init", ".")
+			runGitCommand(gitRemoteDir, "config", "receive.denyCurrentBranch", "updateInstead")
+			runGitCommand(gitRemoteDir, "commit", "--allow-empty", "-m", "Initial commit")
+
+			_, err = git.PlainClone(gitDir, false, &git.CloneOptions{URL: "file://" + gitRemoteDir})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(gitRemoteDir)
+		})
+
+		It("returns the author and date for the given path", func() {
+			newFileName := "some-new-file"
+			author := "some-author"
+			date := "Tue Nov 10 23:00:00 2009 +0000"
+
+			touchFile(filepath.Join(gitDir, newFileName))
+
+			runGitCommand(gitDir, "add", "-A")
+			runGitCommand(
+				gitDir,
+				"commit",
+				"--author", author+" <>",
+				"--date", date,
+				"-m", "some-commit-message",
+			)
+
+			repo := NewRepo(gitRemoteUrl, "", gitDir)
+			actualAuthor, actualDate, err := repo.LatestCommit(newFileName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualAuthor).To(Equal(author))
+			Expect(actualDate).To(Equal(date))
 		})
 	})
 })

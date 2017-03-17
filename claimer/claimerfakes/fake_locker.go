@@ -6,10 +6,11 @@ import (
 )
 
 type FakeLocker struct {
-	ClaimLockStub        func(pool string) error
+	ClaimLockStub        func(pool, username string) error
 	claimLockMutex       sync.RWMutex
 	claimLockArgsForCall []struct {
-		pool string
+		pool     string
+		username string
 	}
 	claimLockReturns struct {
 		result1 error
@@ -17,10 +18,11 @@ type FakeLocker struct {
 	claimLockReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ReleaseLockStub        func(pool string) error
+	ReleaseLockStub        func(pool, username string) error
 	releaseLockMutex       sync.RWMutex
 	releaseLockArgsForCall []struct {
-		pool string
+		pool     string
+		username string
 	}
 	releaseLockReturns struct {
 		result1 error
@@ -41,20 +43,36 @@ type FakeLocker struct {
 		result2 []string
 		result3 error
 	}
+	OwnerStub        func(pool string) (username, date string, err error)
+	ownerMutex       sync.RWMutex
+	ownerArgsForCall []struct {
+		pool string
+	}
+	ownerReturns struct {
+		result1 string
+		result2 string
+		result3 error
+	}
+	ownerReturnsOnCall map[int]struct {
+		result1 string
+		result2 string
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLocker) ClaimLock(pool string) error {
+func (fake *FakeLocker) ClaimLock(pool string, username string) error {
 	fake.claimLockMutex.Lock()
 	ret, specificReturn := fake.claimLockReturnsOnCall[len(fake.claimLockArgsForCall)]
 	fake.claimLockArgsForCall = append(fake.claimLockArgsForCall, struct {
-		pool string
-	}{pool})
-	fake.recordInvocation("ClaimLock", []interface{}{pool})
+		pool     string
+		username string
+	}{pool, username})
+	fake.recordInvocation("ClaimLock", []interface{}{pool, username})
 	fake.claimLockMutex.Unlock()
 	if fake.ClaimLockStub != nil {
-		return fake.ClaimLockStub(pool)
+		return fake.ClaimLockStub(pool, username)
 	}
 	if specificReturn {
 		return ret.result1
@@ -68,10 +86,10 @@ func (fake *FakeLocker) ClaimLockCallCount() int {
 	return len(fake.claimLockArgsForCall)
 }
 
-func (fake *FakeLocker) ClaimLockArgsForCall(i int) string {
+func (fake *FakeLocker) ClaimLockArgsForCall(i int) (string, string) {
 	fake.claimLockMutex.RLock()
 	defer fake.claimLockMutex.RUnlock()
-	return fake.claimLockArgsForCall[i].pool
+	return fake.claimLockArgsForCall[i].pool, fake.claimLockArgsForCall[i].username
 }
 
 func (fake *FakeLocker) ClaimLockReturns(result1 error) {
@@ -93,16 +111,17 @@ func (fake *FakeLocker) ClaimLockReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLocker) ReleaseLock(pool string) error {
+func (fake *FakeLocker) ReleaseLock(pool string, username string) error {
 	fake.releaseLockMutex.Lock()
 	ret, specificReturn := fake.releaseLockReturnsOnCall[len(fake.releaseLockArgsForCall)]
 	fake.releaseLockArgsForCall = append(fake.releaseLockArgsForCall, struct {
-		pool string
-	}{pool})
-	fake.recordInvocation("ReleaseLock", []interface{}{pool})
+		pool     string
+		username string
+	}{pool, username})
+	fake.recordInvocation("ReleaseLock", []interface{}{pool, username})
 	fake.releaseLockMutex.Unlock()
 	if fake.ReleaseLockStub != nil {
-		return fake.ReleaseLockStub(pool)
+		return fake.ReleaseLockStub(pool, username)
 	}
 	if specificReturn {
 		return ret.result1
@@ -116,10 +135,10 @@ func (fake *FakeLocker) ReleaseLockCallCount() int {
 	return len(fake.releaseLockArgsForCall)
 }
 
-func (fake *FakeLocker) ReleaseLockArgsForCall(i int) string {
+func (fake *FakeLocker) ReleaseLockArgsForCall(i int) (string, string) {
 	fake.releaseLockMutex.RLock()
 	defer fake.releaseLockMutex.RUnlock()
-	return fake.releaseLockArgsForCall[i].pool
+	return fake.releaseLockArgsForCall[i].pool, fake.releaseLockArgsForCall[i].username
 }
 
 func (fake *FakeLocker) ReleaseLockReturns(result1 error) {
@@ -187,6 +206,60 @@ func (fake *FakeLocker) StatusReturnsOnCall(i int, result1 []string, result2 []s
 	}{result1, result2, result3}
 }
 
+func (fake *FakeLocker) Owner(pool string) (username, date string, err error) {
+	fake.ownerMutex.Lock()
+	ret, specificReturn := fake.ownerReturnsOnCall[len(fake.ownerArgsForCall)]
+	fake.ownerArgsForCall = append(fake.ownerArgsForCall, struct {
+		pool string
+	}{pool})
+	fake.recordInvocation("Owner", []interface{}{pool})
+	fake.ownerMutex.Unlock()
+	if fake.OwnerStub != nil {
+		return fake.OwnerStub(pool)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.ownerReturns.result1, fake.ownerReturns.result2, fake.ownerReturns.result3
+}
+
+func (fake *FakeLocker) OwnerCallCount() int {
+	fake.ownerMutex.RLock()
+	defer fake.ownerMutex.RUnlock()
+	return len(fake.ownerArgsForCall)
+}
+
+func (fake *FakeLocker) OwnerArgsForCall(i int) string {
+	fake.ownerMutex.RLock()
+	defer fake.ownerMutex.RUnlock()
+	return fake.ownerArgsForCall[i].pool
+}
+
+func (fake *FakeLocker) OwnerReturns(result1 string, result2 string, result3 error) {
+	fake.OwnerStub = nil
+	fake.ownerReturns = struct {
+		result1 string
+		result2 string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeLocker) OwnerReturnsOnCall(i int, result1 string, result2 string, result3 error) {
+	fake.OwnerStub = nil
+	if fake.ownerReturnsOnCall == nil {
+		fake.ownerReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 string
+			result3 error
+		})
+	}
+	fake.ownerReturnsOnCall[i] = struct {
+		result1 string
+		result2 string
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -196,6 +269,8 @@ func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	defer fake.releaseLockMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
+	fake.ownerMutex.RLock()
+	defer fake.ownerMutex.RUnlock()
 	return fake.invocations
 }
 

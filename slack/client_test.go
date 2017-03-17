@@ -9,39 +9,57 @@ import (
 	"golang.org/x/net/websocket"
 	"net/http"
 	"net/http/httptest"
+	"github.com/mdelillo/claimer/slack/slackfakes"
+	"errors"
 )
 
 var _ = Describe("Client", func() {
+	var (
+		requestFactory *slackfakes.FakeRequestFactory
+		usernameRequest *slackfakes.FakeUsernameRequest
+	)
+
+	BeforeEach(func() {
+		requestFactory = new(slackfakes.FakeRequestFactory)
+		usernameRequest = new(slackfakes.FakeUsernameRequest)
+	})
+
 	Describe("Listen", func() {
 		It("handles incoming messages mentioning the user using the supplied function", func() {
 			apiToken := "some-api-token"
 			botId := "some-bot-id"
 			channel := "some-channel"
+			userId := "some-user-id"
+			username := "some-username"
 
 			websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
 				ws.Write([]byte(fmt.Sprintf(
-					`{"type":"%s", "text":"%s", "channel":"%s"}`,
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
 					"message",
 					fmt.Sprintf("<@%s> some-text", botId),
 					channel,
+					userId,
 				)))
 				ws.Write([]byte(fmt.Sprintf(
-					`{"type":"%s", "text":"%s", "channel":"%s"}`,
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
 					"not-a-message",
 					"some-non-message-text",
 					channel,
+					userId,
 				)))
 				ws.Write([]byte(fmt.Sprintf(
-					`{"type":"%s", "text":"%s", "channel":"%s"}`,
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
 					"message",
 					"<@some-other-id> some-text-for-other-user",
 					channel,
+					userId,
 				)))
 				ws.Write([]byte(fmt.Sprintf(
-					`{"type":"%s", "text":"%s", "channel":"%s"}`,
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
 					"message",
 					fmt.Sprintf("<@%s> some-other-text", botId),
 					channel,
+					userId,
 				)))
 			}))
 			defer websocketServer.Close()
@@ -60,16 +78,24 @@ var _ = Describe("Client", func() {
 			}))
 			defer server.Close()
 
+			requestFactory.NewUsernameRequestReturns(usernameRequest)
+			usernameRequest.ExecuteReturns(username, nil)
+
 			messageCount := 0
-			messageHandler := func(text, channel string) {
+			messageHandler := func(actualText, actualChannel, actualUsername string) {
 				messageCount++
-				Expect(text).To(HavePrefix(fmt.Sprintf("<@%s>", botId)))
-				Expect(channel).To(Equal(channel))
+				Expect(actualText).To(HavePrefix(fmt.Sprintf("<@%s>", botId)))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualUsername).To(Equal(username))
 			}
 
-			NewClient(server.URL, apiToken).Listen(messageHandler)
+			NewClient(server.URL, apiToken, requestFactory).Listen(messageHandler)
 			Eventually(func() int { return messageCount }).Should(Equal(2))
 			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
+			Expect(requestFactory.NewUsernameRequestCallCount()).To(Equal(2))
+			Expect(requestFactory.NewUsernameRequestArgsForCall(0)).To(Equal(userId))
+			Expect(requestFactory.NewUsernameRequestArgsForCall(1)).To(Equal(userId))
+			Expect(usernameRequest.ExecuteCallCount()).To(Equal(2))
 		})
 
 		Context("when there is an error starting the RTM session", func() {
@@ -82,7 +108,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					client := NewClient(server.URL, "")
+					client := NewClient(server.URL, "", nil)
 					Expect(client.Listen(nil)).To(MatchError("bad response code: 503 Service Unavailable"))
 				})
 			})
@@ -96,7 +122,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					client := NewClient(server.URL, "")
+					client := NewClient(server.URL, "", nil)
 					Expect(client.Listen(nil)).To(MatchError("failed to start RTM session: some-error"))
 				})
 			})
@@ -110,7 +136,7 @@ var _ = Describe("Client", func() {
 					}))
 					defer server.Close()
 
-					client := NewClient(server.URL, "")
+					client := NewClient(server.URL, "", nil)
 					Expect(client.Listen(nil)).To(MatchError(ContainSubstring("invalid character")))
 				})
 			})
@@ -125,7 +151,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("failed to connect to websocket: .*some-bad-url.*")))
 			})
 		})
@@ -147,7 +173,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse event: ")))
 			})
 		})
@@ -169,8 +195,46 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse message: ")))
+			})
+		})
+
+		Context("when getting the username fails", func() {
+			It("returns an error", func() {
+				apiToken := "some-api-token"
+				botId := "some-bot-id"
+				userId := "some-user-id"
+
+				websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
+					ws.Write([]byte(fmt.Sprintf(
+						`{"type":"%s", "text":"%s", "channel":"some-channel", "user":"%s"}`,
+						"message",
+						fmt.Sprintf("<@%s> some-text", botId),
+						userId,
+					)))
+				}))
+				defer websocketServer.Close()
+
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					defer GinkgoRecover()
+
+					Expect(r.RequestURI).To(Equal("/api/rtm.start?token=" + apiToken))
+					Expect(r.Method).To(Equal("GET"))
+
+					w.Write([]byte(fmt.Sprintf(
+						`{"ok": true, "url": "%s", "self": {"id": "%s"}}`,
+						"ws://"+websocketServer.Listener.Addr().String(),
+						botId,
+					)))
+				}))
+				defer server.Close()
+
+				requestFactory.NewUsernameRequestReturns(usernameRequest)
+				usernameRequest.ExecuteReturns("", errors.New("some-error"))
+
+				client := NewClient(server.URL, apiToken, requestFactory)
+				Expect(client.Listen(nil)).To(MatchError(fmt.Sprintf("failed to get username for %s: some-error", userId)))
 			})
 		})
 	})
@@ -195,7 +259,7 @@ var _ = Describe("Client", func() {
 			}))
 			defer server.Close()
 
-			client := NewClient(server.URL, apiToken)
+			client := NewClient(server.URL, apiToken, nil)
 			Expect(client.PostMessage(channel, message)).To(Succeed())
 		})
 
@@ -208,7 +272,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError("error posting to slack: 503 Service Unavailable"))
 			})
@@ -223,7 +287,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError("error posting to slack: some-error"))
 			})
@@ -238,7 +302,7 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				client := NewClient(server.URL, "")
+				client := NewClient(server.URL, "", nil)
 				err := client.PostMessage("", "")
 				Expect(err).To(MatchError(ContainSubstring("invalid character")))
 			})

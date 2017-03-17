@@ -56,11 +56,11 @@ func (r *repo) CloneOrPull() error {
 	return nil
 }
 
-func (r *repo) CommitAndPush(message string) error {
+func (r *repo) CommitAndPush(message, committer string) error {
 	if output, err := r.run("add", "-A"); err != nil {
 		return fmt.Errorf("failed to stage files: %s", string(output))
 	}
-	if output, err := r.run("-c", "user.name=Claimer", "-c", "user.email=<>", "commit", "-m", message); err != nil {
+	if output, err := r.run("-c", "user.name=Claimer", "-c", "user.email=<>", "commit", "--author", committer+" <>", "-m", message); err != nil {
 		return fmt.Errorf("failed to commit: %s", string(output))
 	}
 	if output, err := r.run("push", "origin", "master"); err != nil {
@@ -71,6 +71,19 @@ func (r *repo) CommitAndPush(message string) error {
 
 func (r *repo) Dir() string {
 	return r.dir
+}
+
+func (r *repo) LatestCommit(path string) (string, string, error) {
+	author, err := r.run("log", "-1", "--format=%an", path)
+	if err != nil {
+		panic(err)
+	}
+	date, err := r.run("log", "-1", "--format=%ad", path)
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.TrimSpace(string(author)), strings.TrimSpace(string(date)), nil
 }
 
 func (r *repo) cloned() bool {

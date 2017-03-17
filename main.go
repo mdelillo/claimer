@@ -38,7 +38,8 @@ func main() {
 	fs := NewFs()
 	repo := NewRepo(*repoUrl, *deployKey, gitDir)
 	locker := NewLocker(fs, repo)
-	slackClient := NewClient("https://slack.com", *apiToken)
+	slackRequestFactory := NewRequestFactory("https://slack.com", *apiToken)
+	slackClient := NewClient("https://slack.com", *apiToken, slackRequestFactory)
 	claimer := New(locker, slackClient, logger)
 	logger.Info("Claimer starting")
 	if err := claimer.Run(); err != nil {

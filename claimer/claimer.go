@@ -9,14 +9,15 @@ import (
 
 //go:generate counterfeiter . locker
 type locker interface {
-	ClaimLock(pool string) error
-	ReleaseLock(pool string) error
+	ClaimLock(pool, username string) error
+	ReleaseLock(pool, username string) error
 	Status() (claimedLocks, unclaimedLocks []string, err error)
+	Owner(pool string) (username, date string, err error)
 }
 
 //go:generate counterfeiter . slackClient
 type slackClient interface {
-	Listen(messageHandler func(text, channel string)) error
+	Listen(messageHandler func(text, channel, username string)) error
 	PostMessage(channel, message string) error
 }
 
@@ -36,33 +37,38 @@ func New(locker locker, slackClient slackClient, logger *logrus.Logger) *claimer
 }
 
 func (c *claimer) Run() error {
-	return c.slackClient.Listen(func(text, channel string) {
-		if err := c.handleMessage(text, channel); err != nil {
+	return c.slackClient.Listen(func(text, channel, username string) {
+		if err := c.handleMessage(text, channel, username); err != nil {
 			c.logger.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"text":    text,
-				"channel": channel,
+				"error":    err.Error(),
+				"text":     text,
+				"channel":  channel,
+				"username": username,
 			}).Error("Failed to handle message")
 		}
 	})
 }
 
-func (c *claimer) handleMessage(text, channel string) error {
+func (c *claimer) handleMessage(text, channel, username string) error {
 	if len(strings.Fields(text)) < 2 {
 		return errors.New("no command specified")
 	}
 	command := strings.Fields(text)[1]
 	switch command {
 	case "claim":
-		if err := c.claim(text, channel); err != nil {
+		if err := c.claim(text, channel, username); err != nil {
 			return err
 		}
 	case "help":
 		if err := c.help(channel); err != nil {
 			return err
 		}
+	case "owner":
+		if err := c.owner(text, channel); err != nil {
+			return err
+		}
 	case "release":
-		if err := c.release(text, channel); err != nil {
+		if err := c.release(text, channel, username); err != nil {
 			return err
 		}
 	case "status":
@@ -75,7 +81,7 @@ func (c *claimer) handleMessage(text, channel string) error {
 	return nil
 }
 
-func (c *claimer) claim(text, channel string) error {
+func (c *claimer) claim(text, channel, username string) error {
 	if len(strings.Fields(text)) < 3 {
 		return errors.New("no pool specified")
 	}
@@ -92,7 +98,7 @@ func (c *claimer) claim(text, channel string) error {
 		return nil
 	}
 
-	if err := c.locker.ClaimLock(pool); err != nil {
+	if err := c.locker.ClaimLock(pool, username); err != nil {
 		return err
 	}
 
@@ -106,6 +112,7 @@ func (c *claimer) help(channel string) error {
 	helpText := "Available commands:\n" +
 		"```\n" +
 		"  claim <env>     Claim an unclaimed environment\n" +
+		"  owner <env>     Show the user who claimed the environment\n" +
 		"  release <env>   Release a claimed environment\n" +
 		"  status          Show claimed and unclaimed environments\n" +
 		"  help            Display this message\n" +
@@ -116,7 +123,7 @@ func (c *claimer) help(channel string) error {
 	return nil
 }
 
-func (c *claimer) release(text, channel string) error {
+func (c *claimer) owner(text, channel string) error {
 	if len(strings.Fields(text)) < 3 {
 		return errors.New("no pool specified")
 	}
@@ -133,7 +140,35 @@ func (c *claimer) release(text, channel string) error {
 		return nil
 	}
 
-	if err := c.locker.ReleaseLock(pool); err != nil {
+	username, date, err := c.locker.Owner(pool)
+	if err != nil {
+		return err
+	}
+
+	if err := c.slackClient.PostMessage(channel, fmt.Sprintf("%s was claimed by %s on %s", pool, username, date)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *claimer) release(text, channel, username string) error {
+	if len(strings.Fields(text)) < 3 {
+		return errors.New("no pool specified")
+	}
+	pool := strings.Fields(text)[2]
+
+	claimedPools, _, err := c.locker.Status()
+	if err != nil {
+		return err
+	}
+	if !contains(claimedPools, pool) {
+		if err := c.slackClient.PostMessage(channel, pool+" is not claimed"); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := c.locker.ReleaseLock(pool, username); err != nil {
 		return err
 	}
 

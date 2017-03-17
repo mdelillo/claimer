@@ -8,8 +8,9 @@ import (
 //go:generate counterfeiter . gitRepo
 type gitRepo interface {
 	CloneOrPull() error
-	CommitAndPush(message string) error
+	CommitAndPush(message, user string) error
 	Dir() string
+	LatestCommit(pool string) (committer, date string, err error)
 }
 
 //go:generate counterfeiter . fs
@@ -31,7 +32,7 @@ func NewLocker(fs fs, gitRepo gitRepo) *locker {
 	}
 }
 
-func (l *locker) ClaimLock(pool string) error {
+func (l *locker) ClaimLock(pool, user string) error {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
 		return err
 	}
@@ -53,13 +54,21 @@ func (l *locker) ClaimLock(pool string) error {
 		return err
 	}
 
-	if err := l.gitRepo.CommitAndPush("Claimer claiming " + pool); err != nil {
+	if err := l.gitRepo.CommitAndPush("Claimer claiming " + pool, user); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (l *locker) ReleaseLock(pool string) error {
+func (l *locker) Owner(pool string) (string, string, error) {
+	if err := l.gitRepo.CloneOrPull(); err != nil {
+		return "", "", err
+	}
+
+	return l.gitRepo.LatestCommit(pool)
+}
+
+func (l *locker) ReleaseLock(pool, user string) error {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
 		return err
 	}
@@ -81,7 +90,7 @@ func (l *locker) ReleaseLock(pool string) error {
 		return err
 	}
 
-	if err := l.gitRepo.CommitAndPush("Claimer releasing " + pool); err != nil {
+	if err := l.gitRepo.CommitAndPush("Claimer releasing " + pool, user); err != nil {
 		return err
 	}
 	return nil
