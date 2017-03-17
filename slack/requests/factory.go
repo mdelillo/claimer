@@ -1,7 +1,7 @@
-package slack
+package requests
 
-//go:generate counterfeiter . RequestFactory
-type RequestFactory interface {
+//go:generate counterfeiter . Factory
+type Factory interface {
 	NewUsernameRequest(userId string) UsernameRequest
 }
 
@@ -15,7 +15,7 @@ type requestFactory struct {
 	apiToken string
 }
 
-func NewRequestFactory(url, apiToken string) RequestFactory {
+func NewFactory(url, apiToken string) Factory {
 	return &requestFactory{
 		url: url,
 		apiToken: apiToken,

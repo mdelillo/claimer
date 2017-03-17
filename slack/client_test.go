@@ -3,25 +3,25 @@ package slack_test
 import (
 	. "github.com/mdelillo/claimer/slack"
 
+	"errors"
 	"fmt"
+	"github.com/mdelillo/claimer/slack/requests/requestsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/websocket"
 	"net/http"
 	"net/http/httptest"
-	"github.com/mdelillo/claimer/slack/slackfakes"
-	"errors"
 )
 
 var _ = Describe("Client", func() {
 	var (
-		requestFactory *slackfakes.FakeRequestFactory
-		usernameRequest *slackfakes.FakeUsernameRequest
+		requestFactory  *requestsfakes.FakeFactory
+		usernameRequest *requestsfakes.FakeUsernameRequest
 	)
 
 	BeforeEach(func() {
-		requestFactory = new(slackfakes.FakeRequestFactory)
-		usernameRequest = new(slackfakes.FakeUsernameRequest)
+		requestFactory = new(requestsfakes.FakeFactory)
+		usernameRequest = new(requestsfakes.FakeUsernameRequest)
 	})
 
 	Describe("Listen", func() {

@@ -9,6 +9,7 @@ import (
 	. "github.com/mdelillo/claimer/git"
 	. "github.com/mdelillo/claimer/locker"
 	. "github.com/mdelillo/claimer/slack"
+	. "github.com/mdelillo/claimer/slack/requests"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -38,7 +39,7 @@ func main() {
 	fs := NewFs()
 	repo := NewRepo(*repoUrl, *deployKey, gitDir)
 	locker := NewLocker(fs, repo)
-	slackRequestFactory := NewRequestFactory("https://slack.com", *apiToken)
+	slackRequestFactory := NewFactory("https://slack.com", *apiToken)
 	slackClient := NewClient("https://slack.com", *apiToken, slackRequestFactory)
 	claimer := New(locker, slackClient, logger)
 	logger.Info("Claimer starting")

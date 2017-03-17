@@ -1,7 +1,7 @@
-package slack_test
+package requests_test
 
 import (
-	. "github.com/mdelillo/claimer/slack"
+	. "github.com/mdelillo/claimer/slack/requests"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,7 +27,7 @@ var _ = Describe("UsernameRequest", func() {
 			}))
 			defer server.Close()
 
-			request := NewRequestFactory(server.URL, apiToken).NewUsernameRequest(userId)
+			request := NewFactory(server.URL, apiToken).NewUsernameRequest(userId)
 			actualUsername, err := request.Execute()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualUsername).To(Equal(username))
@@ -36,7 +36,7 @@ var _ = Describe("UsernameRequest", func() {
 
 	Context("when the request fails", func() {
 		It("returns an error", func() {
-			_, err := NewRequestFactory("", "").NewUsernameRequest("").Execute()
+			_, err := NewFactory("", "").NewUsernameRequest("").Execute()
 			Expect(err).To(MatchError(ContainSubstring("unsupported protocol scheme")))
 		})
 	})
@@ -49,7 +49,7 @@ var _ = Describe("UsernameRequest", func() {
 			}))
 			defer server.Close()
 
-			_, err := NewRequestFactory(server.URL, "").NewUsernameRequest("").Execute()
+			_, err := NewFactory(server.URL, "").NewUsernameRequest("").Execute()
 			Expect(err).To(MatchError(ContainSubstring("error getting user info: 503 Service Unavailable")))
 		})
 	})
@@ -63,7 +63,7 @@ var _ = Describe("UsernameRequest", func() {
 			}))
 			defer server.Close()
 
-			_, err := NewRequestFactory(server.URL, "").NewUsernameRequest("").Execute()
+			_, err := NewFactory(server.URL, "").NewUsernameRequest("").Execute()
 			Expect(err).To(MatchError(ContainSubstring("invalid character")))
 		})
 	})
@@ -77,7 +77,7 @@ var _ = Describe("UsernameRequest", func() {
 			}))
 			defer server.Close()
 
-			_, err := NewRequestFactory(server.URL, "").NewUsernameRequest("").Execute()
+			_, err := NewFactory(server.URL, "").NewUsernameRequest("").Execute()
 			Expect(err).To(MatchError("error in slack response: some-error"))
 		})
 	})

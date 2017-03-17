@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"github.com/mdelillo/claimer/slack/requests"
 )
 
 type client struct {
 	apiToken       string
 	url            string
-	requestFactory RequestFactory
+	requestFactory requests.Factory
 }
 
 type rtmEvent struct {
@@ -26,7 +27,7 @@ type message struct {
 	User string
 }
 
-func NewClient(url, apiToken string, requestFactory RequestFactory) *client {
+func NewClient(url, apiToken string, requestFactory requests.Factory) *client {
 	return &client{
 		apiToken:       apiToken,
 		url:            url,
