@@ -15,13 +15,13 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		requestFactory  *requestsfakes.FakeFactory
-		usernameRequest *requestsfakes.FakeUsernameRequest
+		requestFactory     *requestsfakes.FakeFactory
+		getUsernameRequest *requestsfakes.FakeGetUsernameRequest
 	)
 
 	BeforeEach(func() {
 		requestFactory = new(requestsfakes.FakeFactory)
-		usernameRequest = new(requestsfakes.FakeUsernameRequest)
+		getUsernameRequest = new(requestsfakes.FakeGetUsernameRequest)
 	})
 
 	Describe("Listen", func() {
@@ -78,8 +78,8 @@ var _ = Describe("Client", func() {
 			}))
 			defer server.Close()
 
-			requestFactory.NewUsernameRequestReturns(usernameRequest)
-			usernameRequest.ExecuteReturns(username, nil)
+			requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
+			getUsernameRequest.ExecuteReturns(username, nil)
 
 			messageCount := 0
 			messageHandler := func(actualText, actualChannel, actualUsername string) {
@@ -92,10 +92,10 @@ var _ = Describe("Client", func() {
 			NewClient(server.URL, apiToken, requestFactory).Listen(messageHandler)
 			Eventually(func() int { return messageCount }).Should(Equal(2))
 			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
-			Expect(requestFactory.NewUsernameRequestCallCount()).To(Equal(2))
-			Expect(requestFactory.NewUsernameRequestArgsForCall(0)).To(Equal(userId))
-			Expect(requestFactory.NewUsernameRequestArgsForCall(1)).To(Equal(userId))
-			Expect(usernameRequest.ExecuteCallCount()).To(Equal(2))
+			Expect(requestFactory.NewGetUsernameRequestCallCount()).To(Equal(2))
+			Expect(requestFactory.NewGetUsernameRequestArgsForCall(0)).To(Equal(userId))
+			Expect(requestFactory.NewGetUsernameRequestArgsForCall(1)).To(Equal(userId))
+			Expect(getUsernameRequest.ExecuteCallCount()).To(Equal(2))
 		})
 
 		Context("when there is an error starting the RTM session", func() {
@@ -230,8 +230,8 @@ var _ = Describe("Client", func() {
 				}))
 				defer server.Close()
 
-				requestFactory.NewUsernameRequestReturns(usernameRequest)
-				usernameRequest.ExecuteReturns("", errors.New("some-error"))
+				requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
+				getUsernameRequest.ExecuteReturns("", errors.New("some-error"))
 
 				client := NewClient(server.URL, apiToken, requestFactory)
 				Expect(client.Listen(nil)).To(MatchError(fmt.Sprintf("failed to get username for %s: some-error", userId)))

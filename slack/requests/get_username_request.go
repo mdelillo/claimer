@@ -7,14 +7,14 @@ import (
 	"net/http"
 )
 
-type usernameRequest struct {
+type getUsernameRequest struct {
 	url      string
 	apiToken string
 	userId   string
 }
 
-func (u *usernameRequest) Execute() (string, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/api/users.info?token=%s&user=%s", u.url, u.apiToken, u.userId))
+func (g *getUsernameRequest) Execute() (string, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/api/users.info?token=%s&user=%s", g.url, g.apiToken, g.userId))
 	if err != nil {
 		return "", err
 	}

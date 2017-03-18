@@ -2,11 +2,11 @@ package requests
 
 //go:generate counterfeiter . Factory
 type Factory interface {
-	NewUsernameRequest(userId string) UsernameRequest
+	NewGetUsernameRequest(userId string) GetUsernameRequest
 }
 
-//go:generate counterfeiter . UsernameRequest
-type UsernameRequest interface {
+//go:generate counterfeiter . GetUsernameRequest
+type GetUsernameRequest interface {
 	Execute() (string, error)
 }
 
@@ -22,8 +22,8 @@ func NewFactory(url, apiToken string) Factory {
 	}
 }
 
-func (r *requestFactory) NewUsernameRequest(userId string) UsernameRequest {
-	return &usernameRequest{
+func (r *requestFactory) NewGetUsernameRequest(userId string) GetUsernameRequest {
+	return &getUsernameRequest{
 		url: r.url,
 		apiToken: r.apiToken,
 		userId: userId,

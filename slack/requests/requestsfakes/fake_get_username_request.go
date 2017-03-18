@@ -7,7 +7,7 @@ import (
 	"github.com/mdelillo/claimer/slack/requests"
 )
 
-type FakeUsernameRequest struct {
+type FakeGetUsernameRequest struct {
 	ExecuteStub        func() (string, error)
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct{}
@@ -23,7 +23,7 @@ type FakeUsernameRequest struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUsernameRequest) Execute() (string, error) {
+func (fake *FakeGetUsernameRequest) Execute() (string, error) {
 	fake.executeMutex.Lock()
 	ret, specificReturn := fake.executeReturnsOnCall[len(fake.executeArgsForCall)]
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct{}{})
@@ -38,13 +38,13 @@ func (fake *FakeUsernameRequest) Execute() (string, error) {
 	return fake.executeReturns.result1, fake.executeReturns.result2
 }
 
-func (fake *FakeUsernameRequest) ExecuteCallCount() int {
+func (fake *FakeGetUsernameRequest) ExecuteCallCount() int {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
 	return len(fake.executeArgsForCall)
 }
 
-func (fake *FakeUsernameRequest) ExecuteReturns(result1 string, result2 error) {
+func (fake *FakeGetUsernameRequest) ExecuteReturns(result1 string, result2 error) {
 	fake.ExecuteStub = nil
 	fake.executeReturns = struct {
 		result1 string
@@ -52,7 +52,7 @@ func (fake *FakeUsernameRequest) ExecuteReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeUsernameRequest) ExecuteReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *FakeGetUsernameRequest) ExecuteReturnsOnCall(i int, result1 string, result2 error) {
 	fake.ExecuteStub = nil
 	if fake.executeReturnsOnCall == nil {
 		fake.executeReturnsOnCall = make(map[int]struct {
@@ -66,7 +66,7 @@ func (fake *FakeUsernameRequest) ExecuteReturnsOnCall(i int, result1 string, res
 	}{result1, result2}
 }
 
-func (fake *FakeUsernameRequest) Invocations() map[string][][]interface{} {
+func (fake *FakeGetUsernameRequest) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.executeMutex.RLock()
@@ -74,7 +74,7 @@ func (fake *FakeUsernameRequest) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeUsernameRequest) recordInvocation(key string, args []interface{}) {
+func (fake *FakeGetUsernameRequest) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -86,4 +86,4 @@ func (fake *FakeUsernameRequest) recordInvocation(key string, args []interface{}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ requests.UsernameRequest = new(FakeUsernameRequest)
+var _ requests.GetUsernameRequest = new(FakeGetUsernameRequest)

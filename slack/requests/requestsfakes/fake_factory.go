@@ -8,74 +8,74 @@ import (
 )
 
 type FakeFactory struct {
-	NewUsernameRequestStub        func(userId string) requests.UsernameRequest
-	newUsernameRequestMutex       sync.RWMutex
-	newUsernameRequestArgsForCall []struct {
+	NewGetUsernameRequestStub        func(userId string) requests.GetUsernameRequest
+	newGetUsernameRequestMutex       sync.RWMutex
+	newGetUsernameRequestArgsForCall []struct {
 		userId string
 	}
-	newUsernameRequestReturns struct {
-		result1 requests.UsernameRequest
+	newGetUsernameRequestReturns struct {
+		result1 requests.GetUsernameRequest
 	}
-	newUsernameRequestReturnsOnCall map[int]struct {
-		result1 requests.UsernameRequest
+	newGetUsernameRequestReturnsOnCall map[int]struct {
+		result1 requests.GetUsernameRequest
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFactory) NewUsernameRequest(userId string) requests.UsernameRequest {
-	fake.newUsernameRequestMutex.Lock()
-	ret, specificReturn := fake.newUsernameRequestReturnsOnCall[len(fake.newUsernameRequestArgsForCall)]
-	fake.newUsernameRequestArgsForCall = append(fake.newUsernameRequestArgsForCall, struct {
+func (fake *FakeFactory) NewGetUsernameRequest(userId string) requests.GetUsernameRequest {
+	fake.newGetUsernameRequestMutex.Lock()
+	ret, specificReturn := fake.newGetUsernameRequestReturnsOnCall[len(fake.newGetUsernameRequestArgsForCall)]
+	fake.newGetUsernameRequestArgsForCall = append(fake.newGetUsernameRequestArgsForCall, struct {
 		userId string
 	}{userId})
-	fake.recordInvocation("NewUsernameRequest", []interface{}{userId})
-	fake.newUsernameRequestMutex.Unlock()
-	if fake.NewUsernameRequestStub != nil {
-		return fake.NewUsernameRequestStub(userId)
+	fake.recordInvocation("NewGetUsernameRequest", []interface{}{userId})
+	fake.newGetUsernameRequestMutex.Unlock()
+	if fake.NewGetUsernameRequestStub != nil {
+		return fake.NewGetUsernameRequestStub(userId)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newUsernameRequestReturns.result1
+	return fake.newGetUsernameRequestReturns.result1
 }
 
-func (fake *FakeFactory) NewUsernameRequestCallCount() int {
-	fake.newUsernameRequestMutex.RLock()
-	defer fake.newUsernameRequestMutex.RUnlock()
-	return len(fake.newUsernameRequestArgsForCall)
+func (fake *FakeFactory) NewGetUsernameRequestCallCount() int {
+	fake.newGetUsernameRequestMutex.RLock()
+	defer fake.newGetUsernameRequestMutex.RUnlock()
+	return len(fake.newGetUsernameRequestArgsForCall)
 }
 
-func (fake *FakeFactory) NewUsernameRequestArgsForCall(i int) string {
-	fake.newUsernameRequestMutex.RLock()
-	defer fake.newUsernameRequestMutex.RUnlock()
-	return fake.newUsernameRequestArgsForCall[i].userId
+func (fake *FakeFactory) NewGetUsernameRequestArgsForCall(i int) string {
+	fake.newGetUsernameRequestMutex.RLock()
+	defer fake.newGetUsernameRequestMutex.RUnlock()
+	return fake.newGetUsernameRequestArgsForCall[i].userId
 }
 
-func (fake *FakeFactory) NewUsernameRequestReturns(result1 requests.UsernameRequest) {
-	fake.NewUsernameRequestStub = nil
-	fake.newUsernameRequestReturns = struct {
-		result1 requests.UsernameRequest
+func (fake *FakeFactory) NewGetUsernameRequestReturns(result1 requests.GetUsernameRequest) {
+	fake.NewGetUsernameRequestStub = nil
+	fake.newGetUsernameRequestReturns = struct {
+		result1 requests.GetUsernameRequest
 	}{result1}
 }
 
-func (fake *FakeFactory) NewUsernameRequestReturnsOnCall(i int, result1 requests.UsernameRequest) {
-	fake.NewUsernameRequestStub = nil
-	if fake.newUsernameRequestReturnsOnCall == nil {
-		fake.newUsernameRequestReturnsOnCall = make(map[int]struct {
-			result1 requests.UsernameRequest
+func (fake *FakeFactory) NewGetUsernameRequestReturnsOnCall(i int, result1 requests.GetUsernameRequest) {
+	fake.NewGetUsernameRequestStub = nil
+	if fake.newGetUsernameRequestReturnsOnCall == nil {
+		fake.newGetUsernameRequestReturnsOnCall = make(map[int]struct {
+			result1 requests.GetUsernameRequest
 		})
 	}
-	fake.newUsernameRequestReturnsOnCall[i] = struct {
-		result1 requests.UsernameRequest
+	fake.newGetUsernameRequestReturnsOnCall[i] = struct {
+		result1 requests.GetUsernameRequest
 	}{result1}
 }
 
 func (fake *FakeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.newUsernameRequestMutex.RLock()
-	defer fake.newUsernameRequestMutex.RUnlock()
+	fake.newGetUsernameRequestMutex.RLock()
+	defer fake.newGetUsernameRequestMutex.RUnlock()
 	return fake.invocations
 }
 

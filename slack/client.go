@@ -115,7 +115,7 @@ func (c *client) handleEvent(data []byte, botId string, messageHandler func(stri
 		}
 
 		if mentionsBot(message, botId) {
-			request := c.requestFactory.NewUsernameRequest(message.User)
+			request := c.requestFactory.NewGetUsernameRequest(message.User)
 			username, err := request.Execute()
 			if err != nil {
 				return fmt.Errorf("failed to get username for %s: %s", message.User, err)
