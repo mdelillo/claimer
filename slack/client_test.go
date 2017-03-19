@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/websocket"
-	"net/http"
 	"net/http/httptest"
 )
 
@@ -17,16 +16,19 @@ var _ = Describe("Client", func() {
 	var (
 		requestFactory     *requestsfakes.FakeFactory
 		getUsernameRequest *requestsfakes.FakeGetUsernameRequest
+		postMessageRequest *requestsfakes.FakePostMessageRequest
+		startRtmRequest    *requestsfakes.FakeStartRtmRequest
 	)
 
 	BeforeEach(func() {
 		requestFactory = new(requestsfakes.FakeFactory)
 		getUsernameRequest = new(requestsfakes.FakeGetUsernameRequest)
+		postMessageRequest = new(requestsfakes.FakePostMessageRequest)
+		startRtmRequest = new(requestsfakes.FakeStartRtmRequest)
 	})
 
 	Describe("Listen", func() {
 		It("handles incoming messages mentioning the user using the supplied function", func() {
-			apiToken := "some-api-token"
 			botId := "some-bot-id"
 			channel := "some-channel"
 			userId := "some-user-id"
@@ -63,20 +65,10 @@ var _ = Describe("Client", func() {
 				)))
 			}))
 			defer websocketServer.Close()
+			websocketUrl := "ws://" + websocketServer.Listener.Addr().String()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				defer GinkgoRecover()
-
-				Expect(r.RequestURI).To(Equal("/api/rtm.start?token=" + apiToken))
-				Expect(r.Method).To(Equal("GET"))
-
-				w.Write([]byte(fmt.Sprintf(
-					`{"ok": true, "url": "%s", "self": {"id": "%s"}}`,
-					"ws://"+websocketServer.Listener.Addr().String(),
-					botId,
-				)))
-			}))
-			defer server.Close()
+			requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+			startRtmRequest.ExecuteReturns(websocketUrl, botId, nil)
 
 			requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
 			getUsernameRequest.ExecuteReturns(username, nil)
@@ -89,9 +81,10 @@ var _ = Describe("Client", func() {
 				Expect(actualUsername).To(Equal(username))
 			}
 
-			NewClient(server.URL, apiToken, requestFactory).Listen(messageHandler)
+			NewClient(requestFactory).Listen(messageHandler)
 			Eventually(func() int { return messageCount }).Should(Equal(2))
 			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
+			Expect(requestFactory.NewStartRtmRequestCallCount()).To(Equal(1))
 			Expect(requestFactory.NewGetUsernameRequestCallCount()).To(Equal(2))
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(0)).To(Equal(userId))
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(1)).To(Equal(userId))
@@ -99,59 +92,21 @@ var _ = Describe("Client", func() {
 		})
 
 		Context("when there is an error starting the RTM session", func() {
-			Context("when the response code is non-200", func() {
-				It("returns an error", func() {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						defer GinkgoRecover()
+			It("returns an error", func() {
+				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+				startRtmRequest.ExecuteReturns("", "", errors.New("some-error"))
 
-						w.WriteHeader(503)
-					}))
-					defer server.Close()
-
-					client := NewClient(server.URL, "", nil)
-					Expect(client.Listen(nil)).To(MatchError("bad response code: 503 Service Unavailable"))
-				})
-			})
-
-			Context("when slack returns an error", func() {
-				It("returns an error", func() {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						defer GinkgoRecover()
-
-						w.Write([]byte(`{"ok": false, "error": "some-error"}`))
-					}))
-					defer server.Close()
-
-					client := NewClient(server.URL, "", nil)
-					Expect(client.Listen(nil)).To(MatchError("failed to start RTM session: some-error"))
-				})
-			})
-
-			Context("when the response from slack cannot be parsed", func() {
-				It("returns an error", func() {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						defer GinkgoRecover()
-
-						w.Write([]byte("some-invalid-json"))
-					}))
-					defer server.Close()
-
-					client := NewClient(server.URL, "", nil)
-					Expect(client.Listen(nil)).To(MatchError(ContainSubstring("invalid character")))
-				})
+				client := NewClient(requestFactory)
+				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("some-error")))
 			})
 		})
 
 		Context("when connecting to the websocket fails", func() {
 			It("returns an error", func() {
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
+				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+				startRtmRequest.ExecuteReturns("some-bad-url", "some-bot-id", nil)
 
-					w.Write([]byte(`{"ok": true, "url": "some-bad-url", "self": {"id": "some-bot-id"}}`))
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
+				client := NewClient(requestFactory)
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("failed to connect to websocket: .*some-bad-url.*")))
 			})
 		})
@@ -162,18 +117,12 @@ var _ = Describe("Client", func() {
 					ws.Write([]byte("some-bad-data"))
 				}))
 				defer websocketServer.Close()
+				websocketUrl := "ws://" + websocketServer.Listener.Addr().String()
 
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
+				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-					w.Write([]byte(fmt.Sprintf(
-						`{"ok": true, "url": "%s", "self": {"id": "some-bot-id"}}`,
-						"ws://"+websocketServer.Listener.Addr().String(),
-					)))
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
+				client := NewClient(requestFactory)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse event: ")))
 			})
 		})
@@ -184,25 +133,18 @@ var _ = Describe("Client", func() {
 					ws.Write([]byte(`{"type": "message", "text": {"bad-structure": true}}`))
 				}))
 				defer websocketServer.Close()
+				websocketUrl := "ws://" + websocketServer.Listener.Addr().String()
 
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
+				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-					w.Write([]byte(fmt.Sprintf(
-						`{"ok": true, "url": "%s", "self": {"id": "some-bot-id"}}`,
-						"ws://"+websocketServer.Listener.Addr().String(),
-					)))
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
+				client := NewClient(requestFactory)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse message: ")))
 			})
 		})
 
 		Context("when getting the username fails", func() {
 			It("returns an error", func() {
-				apiToken := "some-api-token"
 				botId := "some-bot-id"
 				userId := "some-user-id"
 
@@ -215,96 +157,43 @@ var _ = Describe("Client", func() {
 					)))
 				}))
 				defer websocketServer.Close()
+				websocketUrl := "ws://" + websocketServer.Listener.Addr().String()
 
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
-
-					Expect(r.RequestURI).To(Equal("/api/rtm.start?token=" + apiToken))
-					Expect(r.Method).To(Equal("GET"))
-
-					w.Write([]byte(fmt.Sprintf(
-						`{"ok": true, "url": "%s", "self": {"id": "%s"}}`,
-						"ws://"+websocketServer.Listener.Addr().String(),
-						botId,
-					)))
-				}))
-				defer server.Close()
+				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
+				startRtmRequest.ExecuteReturns(websocketUrl, botId, nil)
 
 				requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
 				getUsernameRequest.ExecuteReturns("", errors.New("some-error"))
 
-				client := NewClient(server.URL, apiToken, requestFactory)
+				client := NewClient(requestFactory)
 				Expect(client.Listen(nil)).To(MatchError(fmt.Sprintf("failed to get username for %s: some-error", userId)))
 			})
 		})
 	})
 
 	Describe("PostMessage", func() {
-		It("posts a message to a slack channel", func() {
-			apiToken := "some-api-token"
+		It("makes a PostMessage request", func() {
 			channel := "some-channel"
 			message := "some-message"
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				defer GinkgoRecover()
+			requestFactory.NewPostMessageRequestReturns(postMessageRequest)
+			postMessageRequest.ExecuteReturns(nil)
 
-				Expect(r.RequestURI).To(Equal("/api/chat.postMessage"))
-				Expect(r.Method).To(Equal("POST"))
-				Expect(r.FormValue("token")).To(Equal(apiToken))
-				Expect(r.FormValue("channel")).To(Equal(channel))
-				Expect(r.FormValue("text")).To(Equal(message))
-				Expect(r.FormValue("as_user")).To(Equal("true"))
-
-				w.Write([]byte(`{"ok": true}`))
-			}))
-			defer server.Close()
-
-			client := NewClient(server.URL, apiToken, nil)
+			client := NewClient(requestFactory)
 			Expect(client.PostMessage(channel, message)).To(Succeed())
+
+			actualChannel, actualMessage := requestFactory.NewPostMessageRequestArgsForCall(0)
+			Expect(actualChannel).To(Equal(channel))
+			Expect(actualMessage).To(Equal(message))
 		})
 
-		Context("when the response code is non-200", func() {
+		Context("when the requets fails", func() {
 			It("returns an error", func() {
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
+				requestFactory.NewPostMessageRequestReturns(postMessageRequest)
+				postMessageRequest.ExecuteReturns(errors.New("some-error"))
 
-					w.WriteHeader(503)
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
-				err := client.PostMessage("", "")
-				Expect(err).To(MatchError("error posting to slack: 503 Service Unavailable"))
-			})
-		})
-
-		Context("when slack returns an error", func() {
-			It("returns an error", func() {
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
-
-					w.Write([]byte(`{"ok": false, "error": "some-error"}`))
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
-				err := client.PostMessage("", "")
-				Expect(err).To(MatchError("error posting to slack: some-error"))
-			})
-		})
-
-		Context("when the response from slack cannot be parsed", func() {
-			It("returns an error", func() {
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					defer GinkgoRecover()
-
-					w.Write([]byte("some-invalid-json"))
-				}))
-				defer server.Close()
-
-				client := NewClient(server.URL, "", nil)
-				err := client.PostMessage("", "")
-				Expect(err).To(MatchError(ContainSubstring("invalid character")))
+				client := NewClient(requestFactory)
+				Expect(client.PostMessage("", "")).To(MatchError("some-error"))
 			})
 		})
 	})

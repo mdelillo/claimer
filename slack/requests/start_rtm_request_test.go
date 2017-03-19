@@ -3,39 +3,44 @@ package requests_test
 import (
 	. "github.com/mdelillo/claimer/slack/requests"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net/http/httptest"
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 )
 
-var _ = Describe("GetUsernameRequest", func() {
+var _ = Describe("StartRtmRequest", func() {
 	Describe("Execute", func() {
-		It("returns username for the given user id", func() {
+		It("starts an RTM session and returns a websocket URL and bot ID", func() {
 			apiToken := "some-api-token"
-			userId := "some-user-id"
-			username := "some-username"
+			botId := "some-bot-id"
+			websocketUrl := "some-websocket-url"
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
-				Expect(r.RequestURI).To(Equal(fmt.Sprintf("/api/users.info?token=%s&user=%s", apiToken, userId)))
+				Expect(r.RequestURI).To(Equal("/api/rtm.start?token=" + apiToken))
 				Expect(r.Method).To(Equal("GET"))
 
-				w.Write([]byte(fmt.Sprintf(`{"ok": true, "user": {"name": "%s"}}`, username)))
+				w.Write([]byte(fmt.Sprintf(
+					`{"ok": true, "url": "%s", "self": {"id": "%s"}}`,
+					websocketUrl,
+					botId,
+				)))
 			}))
 			defer server.Close()
 
-			request := NewFactory(server.URL, apiToken).NewGetUsernameRequest(userId)
-			actualUsername, err := request.Execute()
+			request := NewFactory(server.URL, apiToken).NewStartRtmRequest()
+			actualWebsocketUrl, actualBotId, err := request.Execute()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(actualUsername).To(Equal(username))
+			Expect(actualWebsocketUrl).To(Equal(websocketUrl))
+			Expect(actualBotId).To(Equal(botId))
 		})
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				_, err := NewFactory("", "").NewGetUsernameRequest("").Execute()
+				_, _, err := NewFactory("", "").NewStartRtmRequest().Execute()
 				Expect(err).To(MatchError(ContainSubstring("unsupported protocol scheme")))
 			})
 		})
@@ -48,8 +53,8 @@ var _ = Describe("GetUsernameRequest", func() {
 				}))
 				defer server.Close()
 
-				_, err := NewFactory(server.URL, "").NewGetUsernameRequest("").Execute()
-				Expect(err).To(MatchError(ContainSubstring("error getting user info: 503 Service Unavailable")))
+				_, _, err := NewFactory(server.URL, "").NewStartRtmRequest().Execute()
+				Expect(err).To(MatchError("error starting RTM session: 503 Service Unavailable"))
 			})
 		})
 
@@ -57,11 +62,11 @@ var _ = Describe("GetUsernameRequest", func() {
 			It("returns an error", func() {
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					defer GinkgoRecover()
-					w.Write([]byte(`some-bad-json`))
+					w.Write([]byte("some-bad-json"))
 				}))
 				defer server.Close()
 
-				_, err := NewFactory(server.URL, "").NewGetUsernameRequest("").Execute()
+				_, _, err := NewFactory(server.URL, "").NewStartRtmRequest().Execute()
 				Expect(err).To(MatchError(ContainSubstring("invalid character")))
 			})
 		})
@@ -74,7 +79,7 @@ var _ = Describe("GetUsernameRequest", func() {
 				}))
 				defer server.Close()
 
-				_, err := NewFactory(server.URL, "").NewGetUsernameRequest("").Execute()
+				_, _, err := NewFactory(server.URL, "").NewStartRtmRequest().Execute()
 				Expect(err).To(MatchError("error in slack response: some-error"))
 			})
 		})

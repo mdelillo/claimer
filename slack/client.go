@@ -3,17 +3,12 @@ package slack
 import (
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/websocket"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
 	"github.com/mdelillo/claimer/slack/requests"
+	"golang.org/x/net/websocket"
+	"strings"
 )
 
 type client struct {
-	apiToken       string
-	url            string
 	requestFactory requests.Factory
 }
 
@@ -22,21 +17,17 @@ type rtmEvent struct {
 }
 
 type message struct {
-	Text     string
-	Channel  string
-	User string
+	Text    string
+	Channel string
+	User    string
 }
 
-func NewClient(url, apiToken string, requestFactory requests.Factory) *client {
-	return &client{
-		apiToken:       apiToken,
-		url:            url,
-		requestFactory: requestFactory,
-	}
+func NewClient(requestFactory requests.Factory) *client {
+	return &client{requestFactory: requestFactory}
 }
 
 func (c *client) Listen(messageHandler func(text, channel, username string)) error {
-	websocketUrl, botId, err := c.startRtmSession()
+	websocketUrl, botId, err := c.requestFactory.NewStartRtmRequest().Execute()
 	if err != nil {
 		return err
 	}
@@ -46,40 +37,6 @@ func (c *client) Listen(messageHandler func(text, channel, username string)) err
 	}
 
 	return nil
-}
-
-func (c *client) startRtmSession() (string, string, error) {
-	resp, err := http.Get(c.url + "/api/rtm.start?token=" + c.apiToken)
-	if err != nil {
-		return "", "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return "", "", fmt.Errorf("bad response code: %s", resp.Status)
-	}
-
-	var rtmStartResponse struct {
-		Ok    bool
-		Error string
-		Url   string
-		Self  struct {
-			Id string
-		}
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", err
-	}
-	if err := json.Unmarshal(body, &rtmStartResponse); err != nil {
-		return "", "", err
-	}
-
-	if !rtmStartResponse.Ok {
-		return "", "", fmt.Errorf("failed to start RTM session: %s", rtmStartResponse.Error)
-	}
-
-	return rtmStartResponse.Url, rtmStartResponse.Self.Id, nil
 }
 
 func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(string, string, string)) error {
@@ -136,39 +93,5 @@ func mentionsBot(message *message, botId string) bool {
 }
 
 func (c *client) PostMessage(channel, message string) error {
-	resp, err := http.PostForm(
-		fmt.Sprintf("%s/api/chat.postMessage", c.url),
-		url.Values{
-			"token":   {c.apiToken},
-			"channel": {channel},
-			"text":    {message},
-			"as_user": {"true"},
-		},
-	)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("error posting to slack: %s", resp.Status)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	var apiResponse struct {
-		Ok    bool
-		Error string
-	}
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return err
-	}
-
-	if !apiResponse.Ok {
-		return fmt.Errorf("error posting to slack: %s", apiResponse.Error)
-	}
-	return nil
+	return c.requestFactory.NewPostMessageRequest(channel, message).Execute()
 }

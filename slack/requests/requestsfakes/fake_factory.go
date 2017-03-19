@@ -19,6 +19,27 @@ type FakeFactory struct {
 	newGetUsernameRequestReturnsOnCall map[int]struct {
 		result1 requests.GetUsernameRequest
 	}
+	NewPostMessageRequestStub        func(channel, message string) requests.PostMessageRequest
+	newPostMessageRequestMutex       sync.RWMutex
+	newPostMessageRequestArgsForCall []struct {
+		channel string
+		message string
+	}
+	newPostMessageRequestReturns struct {
+		result1 requests.PostMessageRequest
+	}
+	newPostMessageRequestReturnsOnCall map[int]struct {
+		result1 requests.PostMessageRequest
+	}
+	NewStartRtmRequestStub        func() requests.StartRtmRequest
+	newStartRtmRequestMutex       sync.RWMutex
+	newStartRtmRequestArgsForCall []struct{}
+	newStartRtmRequestReturns     struct {
+		result1 requests.StartRtmRequest
+	}
+	newStartRtmRequestReturnsOnCall map[int]struct {
+		result1 requests.StartRtmRequest
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -71,11 +92,104 @@ func (fake *FakeFactory) NewGetUsernameRequestReturnsOnCall(i int, result1 reque
 	}{result1}
 }
 
+func (fake *FakeFactory) NewPostMessageRequest(channel string, message string) requests.PostMessageRequest {
+	fake.newPostMessageRequestMutex.Lock()
+	ret, specificReturn := fake.newPostMessageRequestReturnsOnCall[len(fake.newPostMessageRequestArgsForCall)]
+	fake.newPostMessageRequestArgsForCall = append(fake.newPostMessageRequestArgsForCall, struct {
+		channel string
+		message string
+	}{channel, message})
+	fake.recordInvocation("NewPostMessageRequest", []interface{}{channel, message})
+	fake.newPostMessageRequestMutex.Unlock()
+	if fake.NewPostMessageRequestStub != nil {
+		return fake.NewPostMessageRequestStub(channel, message)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newPostMessageRequestReturns.result1
+}
+
+func (fake *FakeFactory) NewPostMessageRequestCallCount() int {
+	fake.newPostMessageRequestMutex.RLock()
+	defer fake.newPostMessageRequestMutex.RUnlock()
+	return len(fake.newPostMessageRequestArgsForCall)
+}
+
+func (fake *FakeFactory) NewPostMessageRequestArgsForCall(i int) (string, string) {
+	fake.newPostMessageRequestMutex.RLock()
+	defer fake.newPostMessageRequestMutex.RUnlock()
+	return fake.newPostMessageRequestArgsForCall[i].channel, fake.newPostMessageRequestArgsForCall[i].message
+}
+
+func (fake *FakeFactory) NewPostMessageRequestReturns(result1 requests.PostMessageRequest) {
+	fake.NewPostMessageRequestStub = nil
+	fake.newPostMessageRequestReturns = struct {
+		result1 requests.PostMessageRequest
+	}{result1}
+}
+
+func (fake *FakeFactory) NewPostMessageRequestReturnsOnCall(i int, result1 requests.PostMessageRequest) {
+	fake.NewPostMessageRequestStub = nil
+	if fake.newPostMessageRequestReturnsOnCall == nil {
+		fake.newPostMessageRequestReturnsOnCall = make(map[int]struct {
+			result1 requests.PostMessageRequest
+		})
+	}
+	fake.newPostMessageRequestReturnsOnCall[i] = struct {
+		result1 requests.PostMessageRequest
+	}{result1}
+}
+
+func (fake *FakeFactory) NewStartRtmRequest() requests.StartRtmRequest {
+	fake.newStartRtmRequestMutex.Lock()
+	ret, specificReturn := fake.newStartRtmRequestReturnsOnCall[len(fake.newStartRtmRequestArgsForCall)]
+	fake.newStartRtmRequestArgsForCall = append(fake.newStartRtmRequestArgsForCall, struct{}{})
+	fake.recordInvocation("NewStartRtmRequest", []interface{}{})
+	fake.newStartRtmRequestMutex.Unlock()
+	if fake.NewStartRtmRequestStub != nil {
+		return fake.NewStartRtmRequestStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newStartRtmRequestReturns.result1
+}
+
+func (fake *FakeFactory) NewStartRtmRequestCallCount() int {
+	fake.newStartRtmRequestMutex.RLock()
+	defer fake.newStartRtmRequestMutex.RUnlock()
+	return len(fake.newStartRtmRequestArgsForCall)
+}
+
+func (fake *FakeFactory) NewStartRtmRequestReturns(result1 requests.StartRtmRequest) {
+	fake.NewStartRtmRequestStub = nil
+	fake.newStartRtmRequestReturns = struct {
+		result1 requests.StartRtmRequest
+	}{result1}
+}
+
+func (fake *FakeFactory) NewStartRtmRequestReturnsOnCall(i int, result1 requests.StartRtmRequest) {
+	fake.NewStartRtmRequestStub = nil
+	if fake.newStartRtmRequestReturnsOnCall == nil {
+		fake.newStartRtmRequestReturnsOnCall = make(map[int]struct {
+			result1 requests.StartRtmRequest
+		})
+	}
+	fake.newStartRtmRequestReturnsOnCall[i] = struct {
+		result1 requests.StartRtmRequest
+	}{result1}
+}
+
 func (fake *FakeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.newGetUsernameRequestMutex.RLock()
 	defer fake.newGetUsernameRequestMutex.RUnlock()
+	fake.newPostMessageRequestMutex.RLock()
+	defer fake.newPostMessageRequestMutex.RUnlock()
+	fake.newStartRtmRequestMutex.RLock()
+	defer fake.newStartRtmRequestMutex.RUnlock()
 	return fake.invocations
 }
 

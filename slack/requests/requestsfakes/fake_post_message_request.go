@@ -7,23 +7,21 @@ import (
 	"github.com/mdelillo/claimer/slack/requests"
 )
 
-type FakeGetUsernameRequest struct {
-	ExecuteStub        func() (username string, err error)
+type FakePostMessageRequest struct {
+	ExecuteStub        func() error
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct{}
 	executeReturns     struct {
-		result1 string
-		result2 error
+		result1 error
 	}
 	executeReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGetUsernameRequest) Execute() (username string, err error) {
+func (fake *FakePostMessageRequest) Execute() error {
 	fake.executeMutex.Lock()
 	ret, specificReturn := fake.executeReturnsOnCall[len(fake.executeArgsForCall)]
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct{}{})
@@ -33,40 +31,37 @@ func (fake *FakeGetUsernameRequest) Execute() (username string, err error) {
 		return fake.ExecuteStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fake.executeReturns.result1, fake.executeReturns.result2
+	return fake.executeReturns.result1
 }
 
-func (fake *FakeGetUsernameRequest) ExecuteCallCount() int {
+func (fake *FakePostMessageRequest) ExecuteCallCount() int {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
 	return len(fake.executeArgsForCall)
 }
 
-func (fake *FakeGetUsernameRequest) ExecuteReturns(result1 string, result2 error) {
+func (fake *FakePostMessageRequest) ExecuteReturns(result1 error) {
 	fake.ExecuteStub = nil
 	fake.executeReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeGetUsernameRequest) ExecuteReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *FakePostMessageRequest) ExecuteReturnsOnCall(i int, result1 error) {
 	fake.ExecuteStub = nil
 	if fake.executeReturnsOnCall == nil {
 		fake.executeReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
+			result1 error
 		})
 	}
 	fake.executeReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeGetUsernameRequest) Invocations() map[string][][]interface{} {
+func (fake *FakePostMessageRequest) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.executeMutex.RLock()
@@ -74,7 +69,7 @@ func (fake *FakeGetUsernameRequest) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeGetUsernameRequest) recordInvocation(key string, args []interface{}) {
+func (fake *FakePostMessageRequest) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -86,4 +81,4 @@ func (fake *FakeGetUsernameRequest) recordInvocation(key string, args []interfac
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ requests.GetUsernameRequest = new(FakeGetUsernameRequest)
+var _ requests.PostMessageRequest = new(FakePostMessageRequest)
