@@ -1,4 +1,4 @@
-package claimer_test
+package bot_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestClaimer(t *testing.T) {
+func TestBot(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Claimer Suite")
+	RunSpecs(t, "Bot Suite")
 }

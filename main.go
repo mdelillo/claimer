@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	. "github.com/mdelillo/claimer/claimer"
+	. "github.com/mdelillo/claimer/bot"
 	. "github.com/mdelillo/claimer/fs"
 	. "github.com/mdelillo/claimer/git"
 	. "github.com/mdelillo/claimer/locker"
@@ -41,9 +41,9 @@ func main() {
 	locker := NewLocker(fs, repo)
 	slackRequestFactory := NewFactory("https://slack.com", *apiToken)
 	slackClient := NewClient(slackRequestFactory)
-	claimer := New(locker, slackClient, logger)
+	bot := New(locker, slackClient, logger)
 	logger.Info("Claimer starting")
-	if err := claimer.Run(); err != nil {
+	if err := bot.Run(); err != nil {
 		fmt.Printf("Error: %s\n", err)
 	}
 	logger.Info("Claimer finished")

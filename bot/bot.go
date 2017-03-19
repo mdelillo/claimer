@@ -1,4 +1,4 @@
-package claimer
+package bot
 
 import (
 	"errors"
@@ -21,22 +21,22 @@ type slackClient interface {
 	PostMessage(channel, message string) error
 }
 
-type claimer struct {
+type bot struct {
 	locker      locker
 	slackClient slackClient
 
 	logger *logrus.Logger
 }
 
-func New(locker locker, slackClient slackClient, logger *logrus.Logger) *claimer {
-	return &claimer{
+func New(locker locker, slackClient slackClient, logger *logrus.Logger) *bot {
+	return &bot{
 		locker:      locker,
 		slackClient: slackClient,
 		logger:      logger,
 	}
 }
 
-func (c *claimer) Run() error {
+func (c *bot) Run() error {
 	return c.slackClient.Listen(func(text, channel, username string) {
 		if err := c.handleMessage(text, channel, username); err != nil {
 			c.logger.WithFields(logrus.Fields{
@@ -49,7 +49,7 @@ func (c *claimer) Run() error {
 	})
 }
 
-func (c *claimer) handleMessage(text, channel, username string) error {
+func (c *bot) handleMessage(text, channel, username string) error {
 	if len(strings.Fields(text)) < 2 {
 		return errors.New("no command specified")
 	}
@@ -81,7 +81,7 @@ func (c *claimer) handleMessage(text, channel, username string) error {
 	return nil
 }
 
-func (c *claimer) claim(text, channel, username string) error {
+func (c *bot) claim(text, channel, username string) error {
 	if len(strings.Fields(text)) < 3 {
 		return errors.New("no pool specified")
 	}
@@ -108,7 +108,7 @@ func (c *claimer) claim(text, channel, username string) error {
 	return nil
 }
 
-func (c *claimer) help(channel string) error {
+func (c *bot) help(channel string) error {
 	helpText := "Available commands:\n" +
 		"```\n" +
 		"  claim <env>     Claim an unclaimed environment\n" +
@@ -123,7 +123,7 @@ func (c *claimer) help(channel string) error {
 	return nil
 }
 
-func (c *claimer) owner(text, channel string) error {
+func (c *bot) owner(text, channel string) error {
 	if len(strings.Fields(text)) < 3 {
 		return errors.New("no pool specified")
 	}
@@ -151,7 +151,7 @@ func (c *claimer) owner(text, channel string) error {
 	return nil
 }
 
-func (c *claimer) release(text, channel, username string) error {
+func (c *bot) release(text, channel, username string) error {
 	if len(strings.Fields(text)) < 3 {
 		return errors.New("no pool specified")
 	}
@@ -178,7 +178,7 @@ func (c *claimer) release(text, channel, username string) error {
 	return nil
 }
 
-func (c *claimer) status(text, channel string) error {
+func (c *bot) status(text, channel string) error {
 	claimedLocks, unclaimedLocks, err := c.locker.Status()
 	if err != nil {
 		return err

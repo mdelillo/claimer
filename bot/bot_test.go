@@ -1,22 +1,22 @@
-package claimer_test
+package bot_test
 
 import (
-	. "github.com/mdelillo/claimer/claimer"
+	. "github.com/mdelillo/claimer/bot"
 
 	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	logrustest "github.com/Sirupsen/logrus/hooks/test"
-	"github.com/mdelillo/claimer/claimer/claimerfakes"
+	"github.com/mdelillo/claimer/bot/botfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Claimer", func() {
+var _ = Describe("Bot", func() {
 	Describe("Run", func() {
 		var (
-			locker      *claimerfakes.FakeLocker
-			slackClient *claimerfakes.FakeSlackClient
+			locker      *botfakes.FakeLocker
+			slackClient *botfakes.FakeSlackClient
 			logger      *logrus.Logger
 			logHook     *logrustest.Hook
 			channel     = "some-channel"
@@ -25,8 +25,8 @@ var _ = Describe("Claimer", func() {
 		)
 
 		BeforeEach(func() {
-			locker = new(claimerfakes.FakeLocker)
-			slackClient = new(claimerfakes.FakeSlackClient)
+			locker = new(botfakes.FakeLocker)
+			slackClient = new(botfakes.FakeSlackClient)
 			logger, logHook = logrustest.NewNullLogger()
 		})
 
