@@ -49,10 +49,10 @@ var _ = Describe("Bot", func() {
 				Expect(actualPool).To(Equal(pool))
 				Expect(actualUsername).To(Equal(username))
 
-				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-				Expect(postChannel).To(Equal(channel))
-				Expect(postMessage).To(Equal("Claimed " + pool))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal("Claimed " + pool))
 			})
 
 			Context("when no pool is specified", func() {
@@ -81,10 +81,10 @@ var _ = Describe("Bot", func() {
 
 					Expect(locker.ClaimLockCallCount()).To(Equal(0))
 
-					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-					Expect(postChannel).To(Equal(channel))
-					Expect(postMessage).To(Equal(pool + " is not available"))
+					Expect(actualChannel).To(Equal(channel))
+					Expect(actualMessage).To(Equal(pool + " is not available"))
 				})
 			})
 
@@ -113,7 +113,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 
@@ -143,7 +146,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 		})
@@ -158,10 +164,10 @@ var _ = Describe("Bot", func() {
 
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
 
-				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-				Expect(postChannel).To(Equal(channel))
-				Expect(postMessage).To(Equal(
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal(
 					"Available commands:\n" +
 						"```\n" +
 						"  claim <env>     Claim an unclaimed environment\n" +
@@ -184,7 +190,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 		})
@@ -206,10 +215,10 @@ var _ = Describe("Bot", func() {
 					Expect(locker.OwnerCallCount()).To(Equal(1))
 					Expect(locker.OwnerArgsForCall(0)).To(Equal(pool))
 
-					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-					Expect(postChannel).To(Equal(channel))
-					Expect(postMessage).To(Equal(fmt.Sprintf("%s was claimed by %s on %s", pool, username, claimDate)))
+					Expect(actualChannel).To(Equal(channel))
+					Expect(actualMessage).To(Equal(fmt.Sprintf("%s was claimed by %s on %s", pool, username, claimDate)))
 				})
 			})
 
@@ -223,10 +232,10 @@ var _ = Describe("Bot", func() {
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
 
-					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-					Expect(postChannel).To(Equal(channel))
-					Expect(postMessage).To(Equal(pool + " is not claimed"))
+					Expect(actualChannel).To(Equal(channel))
+					Expect(actualMessage).To(Equal(pool + " is not claimed"))
 				})
 			})
 
@@ -254,7 +263,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 
@@ -285,7 +297,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 		})
@@ -306,10 +321,10 @@ var _ = Describe("Bot", func() {
 				Expect(actualPool).To(Equal(pool))
 				Expect(actualUsername).To(Equal(username))
 
-				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-				Expect(postChannel).To(Equal(channel))
-				Expect(postMessage).To(Equal("Released " + pool))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal("Released " + pool))
 			})
 
 			Context("when no pool is specified", func() {
@@ -338,10 +353,10 @@ var _ = Describe("Bot", func() {
 
 					Expect(locker.ReleaseLockCallCount()).To(Equal(0))
 
-					postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+					actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 					Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-					Expect(postChannel).To(Equal(channel))
-					Expect(postMessage).To(Equal(pool + " is not claimed"))
+					Expect(actualChannel).To(Equal(channel))
+					Expect(actualMessage).To(Equal(pool + " is not claimed"))
 				})
 			})
 
@@ -370,7 +385,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 
@@ -402,7 +420,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 		})
@@ -425,10 +446,10 @@ var _ = Describe("Bot", func() {
 
 				Expect(locker.StatusCallCount()).To(Equal(1))
 
-				postChannel, postMessage := slackClient.PostMessageArgsForCall(0)
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
 				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-				Expect(postChannel).To(Equal(channel))
-				Expect(postMessage).To(Equal("*Claimed:* claimed-1, claimed-2\n*Unclaimed:* unclaimed-1, unclaimed-2"))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal("*Claimed:* claimed-1, claimed-2\n*Unclaimed:* unclaimed-1, unclaimed-2"))
 			})
 
 			Context("when getting the status fails", func() {
@@ -457,7 +478,10 @@ var _ = Describe("Bot", func() {
 					slackClient.PostMessageReturns(errors.New("some-error"))
 
 					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-					expectLoggedMessageHandlingError(logHook, "some-error", text, channel, username)
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
 				})
 			})
 		})
@@ -471,7 +495,7 @@ var _ = Describe("Bot", func() {
 		})
 
 		Context("when no command is specified", func() {
-			It("logs an error", func() {
+			It("responds in slack", func() {
 				text := "@some-bot"
 				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
 					messageHandler(text, channel, username)
@@ -479,12 +503,35 @@ var _ = Describe("Bot", func() {
 				}
 
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-				expectLoggedMessageHandlingError(logHook, "no command specified", text, channel, username)
+
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal("No command specified. Try `@claimer help` to see usage."))
+			})
+
+			Context("when posting to slack fails", func() {
+				It("logs an error", func() {
+					text := "@some-bot"
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
+				})
+
 			})
 		})
 
 		Context("when an unknown command is received", func() {
-			It("logs an error", func() {
+			It("responds in slack", func() {
 				text := "@some-bot some-bad-command"
 				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
 					messageHandler(text, channel, username)
@@ -492,7 +539,30 @@ var _ = Describe("Bot", func() {
 				}
 
 				Expect(New(locker, slackClient, logger).Run()).To(Succeed())
-				expectLoggedMessageHandlingError(logHook, "unknown command 'some-bad-command'", text, channel, username)
+
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal("Unknown command. Try `@claimer help` to see usage."))
+			})
+
+			Context("when posting to slack fails", func() {
+				It("logs an error", func() {
+					text := "@some-bot some-bad-command"
+					slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+						messageHandler(text, channel, username)
+						return nil
+					}
+
+					slackClient.PostMessageReturns(errors.New("some-error"))
+
+					Expect(New(locker, slackClient, logger).Run()).To(Succeed())
+
+					Expect(len(logHook.Entries)).To(Equal(1))
+					Expect(logHook.LastEntry().Level).To(Equal(logrus.ErrorLevel))
+					Expect(logHook.LastEntry().Message).To(Equal("failed to post to slack: some-error"))
+				})
+
 			})
 		})
 	})

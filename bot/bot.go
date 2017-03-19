@@ -38,7 +38,8 @@ func New(locker locker, slackClient slackClient, logger *logrus.Logger) *bot {
 
 func (c *bot) Run() error {
 	return c.slackClient.Listen(func(text, channel, username string) {
-		if err := c.handleMessage(text, channel, username); err != nil {
+		slackResponse, err := c.handleMessage(text, channel, username)
+		if err != nil {
 			c.logger.WithFields(logrus.Fields{
 				"error":    err.Error(),
 				"text":     text,
@@ -46,152 +47,123 @@ func (c *bot) Run() error {
 				"username": username,
 			}).Error("Failed to handle message")
 		}
+		if slackResponse != "" {
+			if err := c.slackClient.PostMessage(channel, slackResponse); err != nil {
+				c.logger.Errorf("failed to post to slack: %s", err)
+			}
+		}
 	})
 }
 
-func (c *bot) handleMessage(text, channel, username string) error {
+func (c *bot) handleMessage(text, channel, username string) (string, error) {
 	if len(strings.Fields(text)) < 2 {
-		return errors.New("no command specified")
+		return "No command specified. Try `@claimer help` to see usage.", nil
 	}
 	command := strings.Fields(text)[1]
 	switch command {
 	case "claim":
-		if err := c.claim(text, channel, username); err != nil {
-			return err
-		}
+		return c.claim(text, channel, username)
 	case "help":
-		if err := c.help(channel); err != nil {
-			return err
-		}
+		return c.help(channel)
 	case "owner":
-		if err := c.owner(text, channel); err != nil {
-			return err
-		}
+		return c.owner(text, channel)
 	case "release":
-		if err := c.release(text, channel, username); err != nil {
-			return err
-		}
+		return c.release(text, channel, username)
 	case "status":
-		if err := c.status(text, channel); err != nil {
-			return err
-		}
+		return c.status(text, channel)
 	default:
-		return fmt.Errorf("unknown command '%s'", command)
+		return "Unknown command. Try `@claimer help` to see usage.", nil
 	}
-	return nil
+	return "", nil
 }
 
-func (c *bot) claim(text, channel, username string) error {
+func (c *bot) claim(text, channel, username string) (string, error) {
 	if len(strings.Fields(text)) < 3 {
-		return errors.New("no pool specified")
+		return "", errors.New("no pool specified")
 	}
 	pool := strings.Fields(text)[2]
 
 	_, unclaimedPools, err := c.locker.Status()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !contains(unclaimedPools, pool) {
-		if err := c.slackClient.PostMessage(channel, pool+" is not available"); err != nil {
-			return err
-		}
-		return nil
+		return pool + " is not available", nil
 	}
 
 	if err := c.locker.ClaimLock(pool, username); err != nil {
-		return err
+		return "", err
 	}
 
-	if err := c.slackClient.PostMessage(channel, "Claimed "+pool); err != nil {
-		return err
-	}
-	return nil
+	return "Claimed " + pool, nil
 }
 
-func (c *bot) help(channel string) error {
-	helpText := "Available commands:\n" +
-		"```\n" +
-		"  claim <env>     Claim an unclaimed environment\n" +
-		"  owner <env>     Show the user who claimed the environment\n" +
-		"  release <env>   Release a claimed environment\n" +
-		"  status          Show claimed and unclaimed environments\n" +
-		"  help            Display this message\n" +
-		"```"
-	if err := c.slackClient.PostMessage(channel, helpText); err != nil {
-		return err
-	}
-	return nil
+func (c *bot) help(channel string) (string, error) {
+	return "Available commands:\n" +
+			"```\n" +
+			"  claim <env>     Claim an unclaimed environment\n" +
+			"  owner <env>     Show the user who claimed the environment\n" +
+			"  release <env>   Release a claimed environment\n" +
+			"  status          Show claimed and unclaimed environments\n" +
+			"  help            Display this message\n" +
+			"```",
+		nil
 }
 
-func (c *bot) owner(text, channel string) error {
+func (c *bot) owner(text, channel string) (string, error) {
 	if len(strings.Fields(text)) < 3 {
-		return errors.New("no pool specified")
+		return "", errors.New("no pool specified")
 	}
 	pool := strings.Fields(text)[2]
 
 	claimedPools, _, err := c.locker.Status()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !contains(claimedPools, pool) {
-		if err := c.slackClient.PostMessage(channel, pool+" is not claimed"); err != nil {
-			return err
-		}
-		return nil
+		return pool + " is not claimed", nil
 	}
 
 	username, date, err := c.locker.Owner(pool)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if err := c.slackClient.PostMessage(channel, fmt.Sprintf("%s was claimed by %s on %s", pool, username, date)); err != nil {
-		return err
-	}
-	return nil
+	return fmt.Sprintf("%s was claimed by %s on %s", pool, username, date), nil
 }
 
-func (c *bot) release(text, channel, username string) error {
+func (c *bot) release(text, channel, username string) (string, error) {
 	if len(strings.Fields(text)) < 3 {
-		return errors.New("no pool specified")
+		return "", errors.New("no pool specified")
 	}
 	pool := strings.Fields(text)[2]
 
 	claimedPools, _, err := c.locker.Status()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !contains(claimedPools, pool) {
-		if err := c.slackClient.PostMessage(channel, pool+" is not claimed"); err != nil {
-			return err
-		}
-		return nil
+		return pool + " is not claimed", nil
 	}
 
 	if err := c.locker.ReleaseLock(pool, username); err != nil {
-		return err
+		return "", err
 	}
 
-	if err := c.slackClient.PostMessage(channel, "Released "+pool); err != nil {
-		return err
-	}
-	return nil
+	return "Released " + pool, nil
 }
 
-func (c *bot) status(text, channel string) error {
+func (c *bot) status(text, channel string) (string, error) {
 	claimedLocks, unclaimedLocks, err := c.locker.Status()
 	if err != nil {
-		return err
+		return "", err
 	}
-	statusMessage := fmt.Sprintf(
-		"*Claimed:* %s\n*Unclaimed:* %s",
-		strings.Join(claimedLocks, ", "),
-		strings.Join(unclaimedLocks, ", "),
-	)
-	if err := c.slackClient.PostMessage(channel, statusMessage); err != nil {
-		return err
-	}
-	return nil
+	return fmt.Sprintf(
+			"*Claimed:* %s\n*Unclaimed:* %s",
+			strings.Join(claimedLocks, ", "),
+			strings.Join(unclaimedLocks, ", "),
+		),
+		nil
 }
 
 func contains(slice []string, item string) bool {

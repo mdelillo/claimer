@@ -152,11 +152,15 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool is not claimed"))
 
-		// @claimer claim pool-2
-		// assert about error
-		// assert about repo
-		// @claimer status
-		// assert about status
+		By("Not specifying a command")
+		postSlackMessage(fmt.Sprintf("<@%s>", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("No command specified. Try `@claimer help` to see usage."))
+
+		By("Trying to run a non-existent command")
+		postSlackMessage(fmt.Sprintf("<@%s> non-existent-command", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("Unknown command. Try `@claimer help` to see usage."))
 	})
 
 	Context("when $PORT is set", func() {
