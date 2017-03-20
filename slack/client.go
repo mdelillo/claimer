@@ -2,8 +2,8 @@ package slack
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/mdelillo/claimer/slack/requests"
+	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
 	"strings"
 )
@@ -29,7 +29,7 @@ func NewClient(requestFactory requests.Factory) *client {
 func (c *client) Listen(messageHandler func(text, channel, username string)) error {
 	websocketUrl, botId, err := c.requestFactory.NewStartRtmRequest().Execute()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to start RTM")
 	}
 
 	if err := c.handleEvents(websocketUrl, botId, messageHandler); err != nil {
@@ -42,13 +42,13 @@ func (c *client) Listen(messageHandler func(text, channel, username string)) err
 func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(string, string, string)) error {
 	ws, err := websocket.Dial(websocketUrl, "", "https://api.slack.com/")
 	if err != nil {
-		return fmt.Errorf("failed to connect to websocket: %s", err)
+		return errors.Wrap(err, "failed to connect to websocket")
 	}
 
 	for {
 		var data []byte
 		if err := websocket.Message.Receive(ws, &data); err != nil {
-			return fmt.Errorf("failed to receive event: %s", err)
+			return errors.Wrap(err, "failed to receive event")
 		}
 
 		if err := c.handleEvent(data, botId, messageHandler); err != nil {
@@ -62,20 +62,20 @@ func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(st
 func (c *client) handleEvent(data []byte, botId string, messageHandler func(string, string, string)) error {
 	var event *rtmEvent
 	if err := json.Unmarshal(data, &event); err != nil {
-		return fmt.Errorf("failed to parse event: %s", err)
+		return errors.Wrap(err, "failed to parse event")
 	}
 
 	if isMessage(event) {
 		var message *message
 		if err := json.Unmarshal(data, &message); err != nil {
-			return fmt.Errorf("failed to parse message: %s", err)
+			return errors.Wrap(err, "failed to parse message")
 		}
 
 		if mentionsBot(message, botId) {
 			request := c.requestFactory.NewGetUsernameRequest(message.User)
 			username, err := request.Execute()
 			if err != nil {
-				return fmt.Errorf("failed to get username for %s: %s", message.User, err)
+				return errors.Wrap(err, "failed to get username")
 			}
 			messageHandler(message.Text, message.Channel, username)
 		}
@@ -93,5 +93,8 @@ func mentionsBot(message *message, botId string) bool {
 }
 
 func (c *client) PostMessage(channel, message string) error {
-	return c.requestFactory.NewPostMessageRequest(channel, message).Execute()
+	if err := c.requestFactory.NewPostMessageRequest(channel, message).Execute(); err != nil {
+		return errors.Wrap(err, "failed to post message")
+	}
+	return nil
 }

@@ -223,6 +223,14 @@ var _ = Describe("Repo", func() {
 			Expect(actualAuthor).To(Equal(author))
 			Expect(actualDate).To(Equal(date))
 		})
+
+		Context("when there is an error getting the log", func() {
+			It("returns an error", func() {
+				repo := NewRepo("", "", gitDir)
+				_, _, err := repo.LatestCommit("")
+				Expect(err).To(MatchError(ContainSubstring("failed to get commit author: ")))
+			})
+		})
 	})
 })
 

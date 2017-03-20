@@ -1,8 +1,6 @@
 package commands
 
-import (
-	"errors"
-)
+import "github.com/pkg/errors"
 
 type claimCommand struct {
 	locker   locker
@@ -19,14 +17,14 @@ func (c *claimCommand) Execute() (string, error) {
 
 	_, unclaimedPools, err := c.locker.Status()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !contains(unclaimedPools, pool) {
 		return pool + " is not available", nil
 	}
 
 	if err := c.locker.ClaimLock(pool, c.username); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to claim lock")
 	}
 
 	return "Claimed " + pool, nil

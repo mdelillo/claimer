@@ -52,7 +52,7 @@ var _ = Describe("PostMessageRequest", func() {
 			defer server.Close()
 
 			err := NewFactory(server.URL, "").NewPostMessageRequest("", "").Execute()
-			Expect(err).To(MatchError("error posting message: 503 Service Unavailable"))
+			Expect(err).To(MatchError("bad response code: 503 Service Unavailable"))
 		})
 	})
 

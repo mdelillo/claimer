@@ -49,7 +49,7 @@ var _ = Describe("GetUsernameRequest", func() {
 				defer server.Close()
 
 				_, err := NewFactory(server.URL, "").NewGetUsernameRequest("").Execute()
-				Expect(err).To(MatchError(ContainSubstring("error getting user info: 503 Service Unavailable")))
+				Expect(err).To(MatchError(ContainSubstring("bad response code: 503 Service Unavailable")))
 			})
 		})
 

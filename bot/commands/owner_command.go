@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 )
 
 type ownerCommand struct {
@@ -19,7 +19,7 @@ func (o *ownerCommand) Execute() (string, error) {
 
 	claimedPools, _, err := o.locker.Status()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !contains(claimedPools, pool) {
 		return pool + " is not claimed", nil
@@ -27,7 +27,7 @@ func (o *ownerCommand) Execute() (string, error) {
 
 	owner, date, err := o.locker.Owner(pool)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get lock owner")
 	}
 
 	return fmt.Sprintf("%s was claimed by %s on %s", pool, owner, date), nil

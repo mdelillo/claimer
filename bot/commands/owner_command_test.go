@@ -71,7 +71,7 @@ var _ = Describe("OwnerCommand", func() {
 				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to get status of locks: some-error"))
 				Expect(slackResponse).To(BeEmpty())
 			})
 		})
@@ -86,7 +86,7 @@ var _ = Describe("OwnerCommand", func() {
 				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to get lock owner: some-error"))
 				Expect(slackResponse).To(BeEmpty())
 			})
 		})

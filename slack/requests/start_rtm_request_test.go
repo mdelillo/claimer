@@ -54,7 +54,7 @@ var _ = Describe("StartRtmRequest", func() {
 				defer server.Close()
 
 				_, _, err := NewFactory(server.URL, "").NewStartRtmRequest().Execute()
-				Expect(err).To(MatchError("error starting RTM session: 503 Service Unavailable"))
+				Expect(err).To(MatchError("bad response code: 503 Service Unavailable"))
 			})
 		})
 

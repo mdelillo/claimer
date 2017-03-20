@@ -3,6 +3,7 @@ package requests
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -26,12 +27,12 @@ func (p *postMessageRequest) Execute() error {
 		},
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to make request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("error posting message: %s", resp.Status)
+		return errors.Errorf("bad response code: %s", resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -44,11 +45,11 @@ func (p *postMessageRequest) Execute() error {
 		Error string
 	}
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse body")
 	}
 
 	if !apiResponse.Ok {
-		return fmt.Errorf("error in slack response: %s", apiResponse.Error)
+		return errors.Errorf("error in slack response: %s", apiResponse.Error)
 	}
 	return nil
 

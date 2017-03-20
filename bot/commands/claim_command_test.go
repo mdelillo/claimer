@@ -66,7 +66,7 @@ var _ = Describe("ClaimCommand", func() {
 				command := NewFactory(locker).NewCommand("claim", []string{"some-pool"}, "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to get status of locks: some-error"))
 				Expect(slackResponse).To(BeEmpty())
 			})
 		})
@@ -81,7 +81,7 @@ var _ = Describe("ClaimCommand", func() {
 				command := NewFactory(locker).NewCommand("claim", []string{"some-pool"}, "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to claim lock: some-error"))
 				Expect(slackResponse).To(BeEmpty())
 			})
 		})

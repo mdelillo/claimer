@@ -1,7 +1,7 @@
 package fs
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -15,7 +15,7 @@ func NewFs() *filesystem {
 
 func (*filesystem) Mv(src, dst string) error {
 	if err := os.Rename(src, dst); err != nil {
-		return fmt.Errorf("failed to move file: %s", err)
+		return errors.Wrap(err, "failed to move file")
 	}
 	return nil
 }
@@ -25,7 +25,7 @@ func (*filesystem) Ls(dir string) ([]string, error) {
 
 	children, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list directory: %s", err)
+		return nil, errors.Wrap(err, "failed to list directory")
 	}
 
 	for _, child := range children {
@@ -42,7 +42,7 @@ func (*filesystem) LsDirs(dir string) ([]string, error) {
 
 	children, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list directory: %s", err)
+		return nil, errors.Wrap(err, "failed to list directory")
 	}
 
 	for _, child := range children {

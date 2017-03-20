@@ -1,7 +1,7 @@
 package git
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"os/exec"
 	"srcd.works/go-git.v4"
@@ -29,7 +29,7 @@ func (r *repo) CloneOrPull() error {
 	if r.deployKey != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(r.deployKey))
 		if err != nil {
-			return fmt.Errorf("failed to parse public key: %s", err)
+			return errors.Wrap(err, "failed to parse public key")
 		}
 
 		auth = &gitssh.PublicKeys{User: "git", Signer: signer}
@@ -38,18 +38,18 @@ func (r *repo) CloneOrPull() error {
 	if r.cloned() {
 		repo, err := git.PlainOpen(r.dir)
 		if err != nil {
-			return fmt.Errorf("failed to open repo: %s", err)
+			return errors.Wrap(err, "failed to open repo")
 		}
 		if err := repo.Fetch(&git.FetchOptions{Auth: auth}); err != nil && err != git.NoErrAlreadyUpToDate {
-			return fmt.Errorf("failed to fetch repo: %s", err)
+			return errors.Wrap(err, "failed to fetch repo")
 		}
 		if output, err := r.run("reset", "--hard", "origin/master"); err != nil {
-			return fmt.Errorf("failed to reset repo: %s", string(output))
+			return errors.Errorf("failed to reset repo: %s", string(output))
 		}
 	} else {
 		_, err := git.PlainClone(r.dir, false, &git.CloneOptions{URL: r.url, Auth: auth})
 		if err != nil {
-			return fmt.Errorf("failed to clone repo: %s", err)
+			return errors.Wrap(err, "failed to clone repo")
 		}
 	}
 
@@ -58,13 +58,13 @@ func (r *repo) CloneOrPull() error {
 
 func (r *repo) CommitAndPush(message, committer string) error {
 	if output, err := r.run("add", "-A"); err != nil {
-		return fmt.Errorf("failed to stage files: %s", string(output))
+		return errors.Errorf("failed to stage files: %s", string(output))
 	}
 	if output, err := r.run("-c", "user.name=Claimer", "-c", "user.email=<>", "commit", "--author", committer+" <>", "-m", message); err != nil {
-		return fmt.Errorf("failed to commit: %s", string(output))
+		return errors.Errorf("failed to commit: %s", string(output))
 	}
 	if output, err := r.run("push", "origin", "master"); err != nil {
-		return fmt.Errorf("failed to push: %s", string(output))
+		return errors.Errorf("failed to push: %s", string(output))
 	}
 	return nil
 }
@@ -74,16 +74,16 @@ func (r *repo) Dir() string {
 }
 
 func (r *repo) LatestCommit(path string) (string, string, error) {
-	author, err := r.run("log", "-1", "--format=%an", path)
+	authorOutput, err := r.run("log", "-1", "--format=%an", path)
 	if err != nil {
-		panic(err)
+		return "", "", errors.Errorf("failed to get commit author: %s", string(authorOutput))
 	}
-	date, err := r.run("log", "-1", "--format=%ad", path)
+	dateOutput, err := r.run("log", "-1", "--format=%ad", path)
 	if err != nil {
-		panic(err)
+		return "", "", errors.Errorf("failed to get commit date: %s", string(dateOutput))
 	}
 
-	return strings.TrimSpace(string(author)), strings.TrimSpace(string(date)), nil
+	return strings.TrimSpace(string(authorOutput)), strings.TrimSpace(string(dateOutput)), nil
 }
 
 func (r *repo) cloned() bool {

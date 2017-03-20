@@ -146,14 +146,12 @@ var _ = Describe("Client", func() {
 		Context("when getting the username fails", func() {
 			It("returns an error", func() {
 				botId := "some-bot-id"
-				userId := "some-user-id"
 
 				websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
 					ws.Write([]byte(fmt.Sprintf(
-						`{"type":"%s", "text":"%s", "channel":"some-channel", "user":"%s"}`,
+						`{"type":"%s", "text":"%s", "channel":"some-channel", "user":"some-user-id"}`,
 						"message",
 						fmt.Sprintf("<@%s> some-text", botId),
-						userId,
 					)))
 				}))
 				defer websocketServer.Close()
@@ -166,7 +164,7 @@ var _ = Describe("Client", func() {
 				getUsernameRequest.ExecuteReturns("", errors.New("some-error"))
 
 				client := NewClient(requestFactory)
-				Expect(client.Listen(nil)).To(MatchError(fmt.Sprintf("failed to get username for %s: some-error", userId)))
+				Expect(client.Listen(nil)).To(MatchError("failed to get username: some-error"))
 			})
 		})
 	})
@@ -193,7 +191,7 @@ var _ = Describe("Client", func() {
 				postMessageRequest.ExecuteReturns(errors.New("some-error"))
 
 				client := NewClient(requestFactory)
-				Expect(client.PostMessage("", "")).To(MatchError("some-error"))
+				Expect(client.PostMessage("", "")).To(MatchError("failed to post message: some-error"))
 			})
 		})
 	})

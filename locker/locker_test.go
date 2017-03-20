@@ -55,7 +55,7 @@ var _ = Describe("Locker", func() {
 				gitRepo.CloneOrPullReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ClaimLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ClaimLock("", "")).To(MatchError("failed to clone or pull: some-error"))
 			})
 		})
 
@@ -64,7 +64,7 @@ var _ = Describe("Locker", func() {
 				fs.LsReturns(nil, errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ClaimLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ClaimLock("", "")).To(MatchError("failed to list unclaimed locks: some-error"))
 			})
 		})
 
@@ -96,7 +96,7 @@ var _ = Describe("Locker", func() {
 				fs.MvReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ClaimLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ClaimLock("", "")).To(MatchError("failed to move file: some-error"))
 			})
 		})
 
@@ -106,7 +106,7 @@ var _ = Describe("Locker", func() {
 				gitRepo.CommitAndPushReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ClaimLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ClaimLock("", "")).To(MatchError("failed to commit and push: some-error"))
 			})
 		})
 	})
@@ -135,7 +135,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Owner("")
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to clone or pull: some-error"))
 			})
 		})
 
@@ -145,7 +145,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Owner("")
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to get latest commit: some-error"))
 			})
 		})
 	})
@@ -184,7 +184,7 @@ var _ = Describe("Locker", func() {
 				gitRepo.CloneOrPullReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ReleaseLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ReleaseLock("", "")).To(MatchError("failed to clone or pull: some-error"))
 			})
 		})
 
@@ -193,7 +193,7 @@ var _ = Describe("Locker", func() {
 				fs.LsReturns(nil, errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ReleaseLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ReleaseLock("", "")).To(MatchError("failed to list claimed locks: some-error"))
 			})
 		})
 
@@ -225,7 +225,7 @@ var _ = Describe("Locker", func() {
 				fs.MvReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ReleaseLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ReleaseLock("", "")).To(MatchError("failed to move file: some-error"))
 			})
 		})
 
@@ -235,7 +235,7 @@ var _ = Describe("Locker", func() {
 				gitRepo.CommitAndPushReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				Expect(locker.ReleaseLock("", "")).To(MatchError("some-error"))
+				Expect(locker.ReleaseLock("", "")).To(MatchError("failed to commit and push: some-error"))
 			})
 		})
 	})
@@ -281,7 +281,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Status()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to clone or pull: some-error"))
 			})
 		})
 
@@ -291,7 +291,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Status()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to list pools: some-error"))
 			})
 		})
 
@@ -302,7 +302,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Status()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to list claimed locks: some-error"))
 			})
 		})
 
@@ -313,7 +313,7 @@ var _ = Describe("Locker", func() {
 
 				locker := NewLocker(fs, gitRepo)
 				_, _, err := locker.Status()
-				Expect(err).To(MatchError("some-error"))
+				Expect(err).To(MatchError("failed to list unclaimed locks: some-error"))
 			})
 		})
 	})

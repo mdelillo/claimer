@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ type statusCommand struct {
 func (s *statusCommand) Execute() (string, error) {
 	claimedLocks, unclaimedLocks, err := s.locker.Status()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	return fmt.Sprintf(
 			"*Claimed:* %s\n*Unclaimed:* %s",

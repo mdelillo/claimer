@@ -40,3 +40,6 @@
 [submodule "vendor/golang.org/x/tools"]
 	path = vendor/golang.org/x/tools
 	url = https://github.com/golang/tools.git
+[submodule "vendor/github.com/pkg/errors"]
+	path = vendor/github.com/pkg/errors
+	url = https://github.com/pkg/errors.git

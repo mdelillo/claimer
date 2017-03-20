@@ -1,7 +1,7 @@
 package locker
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"path/filepath"
 )
 
@@ -34,64 +34,68 @@ func NewLocker(fs fs, gitRepo gitRepo) *locker {
 
 func (l *locker) ClaimLock(pool, user string) error {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to clone or pull")
 	}
 
 	locks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list unclaimed locks")
 	}
 
 	if len(locks) == 0 {
-		return fmt.Errorf("no unclaimed locks for pool " + pool)
+		return errors.Errorf("no unclaimed locks for pool %s", pool)
 	} else if len(locks) > 1 {
-		return fmt.Errorf("too many unclaimed locks for pool " + pool)
+		return errors.Errorf("too many unclaimed locks for pool %s", pool)
 	}
 
 	unclaimedLock := filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", locks[0])
 	claimedLock := filepath.Join(l.gitRepo.Dir(), pool, "claimed", locks[0])
 	if err := l.fs.Mv(unclaimedLock, claimedLock); err != nil {
-		return err
+		return errors.Wrap(err, "failed to move file")
 	}
 
 	if err := l.gitRepo.CommitAndPush("Claimer claiming "+pool, user); err != nil {
-		return err
+		return errors.Wrap(err, "failed to commit and push")
 	}
 	return nil
 }
 
 func (l *locker) Owner(pool string) (string, string, error) {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return "", "", err
+		return "", "", errors.Wrap(err, "failed to clone or pull")
 	}
 
-	return l.gitRepo.LatestCommit(pool)
+	author, date, err := l.gitRepo.LatestCommit(pool)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to get latest commit")
+	}
+	return author, date, nil
 }
 
 func (l *locker) ReleaseLock(pool, user string) error {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to clone or pull")
 	}
 
 	locks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "claimed"))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list claimed locks")
 	}
 
 	if len(locks) == 0 {
-		return fmt.Errorf("no claimed locks for pool " + pool)
+		return errors.Errorf("no claimed locks for pool %s", pool)
 	} else if len(locks) > 1 {
-		return fmt.Errorf("too many claimed locks for pool " + pool)
+		return errors.Errorf("too many claimed locks for pool %s", pool)
 	}
 
 	claimedLock := filepath.Join(l.gitRepo.Dir(), pool, "claimed", locks[0])
 	unclaimedLock := filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", locks[0])
 	if err := l.fs.Mv(claimedLock, unclaimedLock); err != nil {
-		return err
+		return errors.Wrap(err, "failed to move file")
 	}
 
 	if err := l.gitRepo.CommitAndPush("Claimer releasing "+pool, user); err != nil {
-		return err
+		return errors.Wrap(err, "failed to commit and push")
 	}
 	return nil
 }
@@ -101,24 +105,24 @@ func (l *locker) Status() ([]string, []string, error) {
 	var unclaimedPools []string
 
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to clone or pull")
 	}
 
 	pools, err := l.fs.LsDirs(l.gitRepo.Dir())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to list pools")
 	}
 	for _, pool := range pools {
 		claimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "claimed"))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "failed to list claimed locks")
 		}
 		if len(claimedLocks) > 0 {
 			claimedPools = append(claimedPools, pool)
 		} else {
 			unclaimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, errors.Wrap(err, "failed to list unclaimed locks")
 			}
 			if len(unclaimedLocks) > 0 {
 				unclaimedPools = append(unclaimedPools, pool)

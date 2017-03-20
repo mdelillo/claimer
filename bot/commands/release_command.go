@@ -1,8 +1,6 @@
 package commands
 
-import (
-	"errors"
-)
+import "github.com/pkg/errors"
 
 type releaseCommand struct {
 	locker   locker
@@ -19,14 +17,14 @@ func (r *releaseCommand) Execute() (string, error) {
 
 	claimedPools, _, err := r.locker.Status()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !contains(claimedPools, pool) {
 		return pool + " is not claimed", nil
 	}
 
 	if err := r.locker.ReleaseLock(pool, r.username); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to release lock")
 	}
 
 	return "Released " + pool, nil
