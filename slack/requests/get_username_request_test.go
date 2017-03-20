@@ -3,11 +3,11 @@ package requests_test
 import (
 	. "github.com/mdelillo/claimer/slack/requests"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net/http/httptest"
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 )
 
 var _ = Describe("GetUsernameRequest", func() {

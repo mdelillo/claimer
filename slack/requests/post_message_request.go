@@ -1,11 +1,11 @@
 package requests
 
 import (
-	"fmt"
-	"net/url"
 	"encoding/json"
-	"net/http"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 )
 
 type postMessageRequest struct {

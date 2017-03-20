@@ -152,13 +152,8 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool is not claimed"))
 
-		By("Not specifying a command")
-		postSlackMessage(fmt.Sprintf("<@%s>", botId), channelId, userApiToken)
-		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("No command specified. Try `@claimer help` to see usage."))
-
-		By("Trying to run a non-existent command")
-		postSlackMessage(fmt.Sprintf("<@%s> non-existent-command", botId), channelId, userApiToken)
+		By("Trying to run an unknown command")
+		postSlackMessage(fmt.Sprintf("<@%s> unknown-command", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Unknown command. Try `@claimer help` to see usage."))
 	})
@@ -218,10 +213,10 @@ func postSlackMessage(text, channelId, apiToken string) {
 	resp, err := http.PostForm(
 		"https://slack.com/api/chat.postMessage",
 		url.Values{
-			"token":    {apiToken},
-			"channel":  {channelId},
-			"text":     {text},
-			"as_user":  {"true"},
+			"token":   {apiToken},
+			"channel": {channelId},
+			"text":    {text},
+			"as_user": {"true"},
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

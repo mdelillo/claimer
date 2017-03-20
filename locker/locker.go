@@ -54,7 +54,7 @@ func (l *locker) ClaimLock(pool, user string) error {
 		return err
 	}
 
-	if err := l.gitRepo.CommitAndPush("Claimer claiming " + pool, user); err != nil {
+	if err := l.gitRepo.CommitAndPush("Claimer claiming "+pool, user); err != nil {
 		return err
 	}
 	return nil
@@ -90,7 +90,7 @@ func (l *locker) ReleaseLock(pool, user string) error {
 		return err
 	}
 
-	if err := l.gitRepo.CommitAndPush("Claimer releasing " + pool, user); err != nil {
+	if err := l.gitRepo.CommitAndPush("Claimer releasing "+pool, user); err != nil {
 		return err
 	}
 	return nil

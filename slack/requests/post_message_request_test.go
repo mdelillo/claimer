@@ -5,8 +5,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net/http/httptest"
 	"net/http"
+	"net/http/httptest"
 )
 
 var _ = Describe("PostMessageRequest", func() {
@@ -51,7 +51,7 @@ var _ = Describe("PostMessageRequest", func() {
 			}))
 			defer server.Close()
 
-			err := NewFactory(server.URL, "").NewPostMessageRequest("","").Execute()
+			err := NewFactory(server.URL, "").NewPostMessageRequest("", "").Execute()
 			Expect(err).To(MatchError("error posting message: 503 Service Unavailable"))
 		})
 	})

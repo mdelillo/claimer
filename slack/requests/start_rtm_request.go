@@ -2,9 +2,9 @@ package requests
 
 import (
 	"encoding/json"
-	"net/http"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 )
 
 type startRtmRequest struct {
