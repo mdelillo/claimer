@@ -28,7 +28,7 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("Listen", func() {
-		It("handles incoming messages mentioning the user using the supplied function", func() {
+		It("handles incoming messages in the channel mentioning the user using the supplied function", func() {
 			botId := "some-bot-id"
 			channel := "some-channel"
 			userId := "some-user-id"
@@ -63,6 +63,13 @@ var _ = Describe("Client", func() {
 					channel,
 					userId,
 				)))
+				ws.Write([]byte(fmt.Sprintf(
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
+					"message",
+					fmt.Sprintf("<@%s> some-text-in-other-channel", botId),
+					"some-other-channel",
+					userId,
+				)))
 			}))
 			defer websocketServer.Close()
 			websocketUrl := "ws://" + websocketServer.Listener.Addr().String()
@@ -81,7 +88,7 @@ var _ = Describe("Client", func() {
 				Expect(actualUsername).To(Equal(username))
 			}
 
-			NewClient(requestFactory).Listen(messageHandler)
+			NewClient(requestFactory, channel).Listen(messageHandler)
 			Eventually(func() int { return messageCount }).Should(Equal(2))
 			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
 			Expect(requestFactory.NewStartRtmRequestCallCount()).To(Equal(1))
@@ -96,7 +103,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns("", "", errors.New("some-error"))
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, "")
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("some-error")))
 			})
 		})
@@ -106,7 +113,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns("some-bad-url", "some-bot-id", nil)
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, "")
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("failed to connect to websocket: .*some-bad-url.*")))
 			})
 		})
@@ -122,7 +129,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, "")
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse event: ")))
 			})
 		})
@@ -138,20 +145,22 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, "")
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse message: ")))
 			})
 		})
 
 		Context("when getting the username fails", func() {
-			It("returns an error", func() {
+			FIt("returns an error", func() {
 				botId := "some-bot-id"
+				channel := "some-channel"
 
 				websocketServer := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
 					ws.Write([]byte(fmt.Sprintf(
-						`{"type":"%s", "text":"%s", "channel":"some-channel", "user":"some-user-id"}`,
+						`{"type":"%s", "text":"%s", "channel":"%s", "user":"some-user-id"}`,
 						"message",
 						fmt.Sprintf("<@%s> some-text", botId),
+						channel,
 					)))
 				}))
 				defer websocketServer.Close()
@@ -163,7 +172,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
 				getUsernameRequest.ExecuteReturns("", errors.New("some-error"))
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, channel)
 				Expect(client.Listen(nil)).To(MatchError("failed to get username: some-error"))
 			})
 		})
@@ -177,7 +186,7 @@ var _ = Describe("Client", func() {
 			requestFactory.NewPostMessageRequestReturns(postMessageRequest)
 			postMessageRequest.ExecuteReturns(nil)
 
-			client := NewClient(requestFactory)
+			client := NewClient(requestFactory, channel)
 			Expect(client.PostMessage(channel, message)).To(Succeed())
 
 			actualChannel, actualMessage := requestFactory.NewPostMessageRequestArgsForCall(0)
@@ -190,7 +199,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewPostMessageRequestReturns(postMessageRequest)
 				postMessageRequest.ExecuteReturns(errors.New("some-error"))
 
-				client := NewClient(requestFactory)
+				client := NewClient(requestFactory, "")
 				Expect(client.PostMessage("", "")).To(MatchError("failed to post message: some-error"))
 			})
 		})

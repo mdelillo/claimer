@@ -26,6 +26,7 @@ var _ = Describe("Claimer", func() {
 		claimer   string
 		gitDir    string
 		apiToken  string
+		channelId string
 		repoUrl   string
 		deployKey string
 	)
@@ -40,6 +41,7 @@ var _ = Describe("Claimer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		apiToken = getEnv("CLAIMER_TEST_API_TOKEN")
+		channelId = getEnv("CLAIMER_TEST_CHANNEL_ID")
 		repoUrl = getEnv("CLAIMER_TEST_REPO_URL")
 		deployKey = getEnv("CLAIMER_TEST_DEPLOY_KEY")
 	})
@@ -51,10 +53,10 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("claims and releases locks", func() {
-		channelId := getEnv("CLAIMER_TEST_CHANNEL_ID")
 		botId := getEnv("CLAIMER_TEST_BOT_ID")
 		userApiToken := getEnv("CLAIMER_TEST_USER_API_TOKEN")
 		username := getEnv("CLAIMER_TEST_USERNAME")
+		otherChannelId := getEnv("CLAIMER_TEST_OTHER_CHANNEL_ID")
 
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
 		Expect(err).NotTo(HaveOccurred())
@@ -74,6 +76,7 @@ var _ = Describe("Claimer", func() {
 		claimerCommand := exec.Command(
 			claimer,
 			"-apiToken", apiToken,
+			"-channelId", channelId,
 			"-repoUrl", repoUrl,
 			"-deployKey", deployKey,
 		)
@@ -156,6 +159,11 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> unknown-command", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Unknown command. Try `@claimer help` to see usage."))
+
+		By("Mentioning claimer in a different channel")
+		postSlackMessage(fmt.Sprintf("<@%s> help", botId), otherChannelId, userApiToken)
+		Consistently(func() string { return latestSlackMessage(otherChannelId, apiToken) }, "10s").
+			Should(Equal(fmt.Sprintf("<@%s> help", botId)))
 	})
 
 	Context("when $PORT is set", func() {

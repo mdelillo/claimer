@@ -10,6 +10,7 @@ import (
 
 type client struct {
 	requestFactory requests.Factory
+	channelId      string
 }
 
 type rtmEvent struct {
@@ -22,8 +23,11 @@ type message struct {
 	User    string
 }
 
-func NewClient(requestFactory requests.Factory) *client {
-	return &client{requestFactory: requestFactory}
+func NewClient(requestFactory requests.Factory, channelId string) *client {
+	return &client{
+		requestFactory: requestFactory,
+		channelId:      channelId,
+	}
 }
 
 func (c *client) Listen(messageHandler func(text, channel, username string)) error {
@@ -71,7 +75,7 @@ func (c *client) handleEvent(data []byte, botId string, messageHandler func(stri
 			return errors.Wrap(err, "failed to parse message")
 		}
 
-		if mentionsBot(message, botId) {
+		if inChannel(message, c.channelId) && mentionsBot(message, botId) {
 			request := c.requestFactory.NewGetUsernameRequest(message.User)
 			username, err := request.Execute()
 			if err != nil {
@@ -86,6 +90,10 @@ func (c *client) handleEvent(data []byte, botId string, messageHandler func(stri
 
 func isMessage(e *rtmEvent) bool {
 	return e.Type == "message"
+}
+
+func inChannel(message *message, channelId string) bool {
+	return message.Channel == channelId
 }
 
 func mentionsBot(message *message, botId string) bool {

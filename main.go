@@ -18,6 +18,7 @@ import (
 
 func main() {
 	apiToken := flag.String("apiToken", "", "API Token for Slack")
+	channelId := flag.String("channelId", "", "ID of slack channel to listen in")
 	repoUrl := flag.String("repoUrl", "", "URL for git repository of locks")
 	deployKey := flag.String("deployKey", "", "Deploy key for Github")
 	flag.Parse()
@@ -46,6 +47,7 @@ func main() {
 		),
 		slack.NewClient(
 			requests.NewFactory("https://slack.com", *apiToken),
+			*channelId,
 		),
 		logger,
 	)
