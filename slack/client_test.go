@@ -151,7 +151,7 @@ var _ = Describe("Client", func() {
 		})
 
 		Context("when getting the username fails", func() {
-			FIt("returns an error", func() {
+			It("returns an error", func() {
 				botId := "some-bot-id"
 				channel := "some-channel"
 
