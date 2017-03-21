@@ -12,7 +12,6 @@ import (
 	"github.com/mdelillo/claimer/slack"
 	"github.com/mdelillo/claimer/slack/requests"
 	"io/ioutil"
-	"net/http"
 	"os"
 )
 
@@ -33,11 +32,6 @@ func main() {
 	}
 	defer os.RemoveAll(gitDir)
 
-	if port := os.Getenv("PORT"); port != "" {
-		logger.Info("Starting healthcheck listener on port " + port)
-		startHealthcheckListener(port)
-	}
-
 	claimer := bot.New(
 		commands.NewFactory(
 			locker.NewLocker(
@@ -57,13 +51,4 @@ func main() {
 		fmt.Printf("Error: %s\n", err)
 	}
 	logger.Info("Claimer finished")
-}
-
-func startHealthcheckListener(port string) {
-	go func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, "I'm alive")
-		})
-		http.ListenAndServe("127.0.0.1:"+port, nil)
-	}()
 }

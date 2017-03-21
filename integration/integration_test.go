@@ -9,7 +9,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -165,48 +164,6 @@ var _ = Describe("Claimer", func() {
 		Consistently(func() string { return latestSlackMessage(otherChannelId, apiToken) }, "10s").
 			Should(Equal(fmt.Sprintf("<@%s> help", botId)))
 	})
-
-	Context("when $PORT is set", func() {
-		var savedPort string
-
-		BeforeEach(func() {
-			savedPort = os.Getenv("PORT")
-		})
-
-		AfterEach(func() {
-			os.Setenv("PORT", savedPort)
-		})
-
-		It("responds to get requests on $PORT", func() {
-			port := freePort()
-			os.Setenv("PORT", port)
-
-			claimerCommand := exec.Command(
-				claimer,
-				"-apiToken", apiToken,
-				"-repoUrl", repoUrl,
-				"-deployKey", deployKey,
-			)
-			session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(session).Should(gbytes.Say("Starting healthcheck listener on port " + port))
-
-			Eventually(func() error {
-				_, err := net.Dial("tcp", "127.0.0.1:"+port)
-				return err
-			}).Should(BeNil())
-
-			resp, err := http.Get("http://127.0.0.1:" + port)
-			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
-
-			body, err := ioutil.ReadAll(resp.Body)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(string(body)).To(Equal("I'm alive"))
-		})
-	})
 })
 
 func getEnv(name string) string {
@@ -295,13 +252,4 @@ func runGitCommand(dir, deployKey string, args ...string) {
 	cmd.Env = append(os.Environ(), fmt.Sprintf(`GIT_SSH_COMMAND=/usr/bin/ssh -i %s`, deployKeyPath))
 	output, err := cmd.CombinedOutput()
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), fmt.Sprintf("Error running git command: %s", string(output)))
-}
-
-func freePort() string {
-	conn, err := net.Listen("tcp", "127.0.0.1:0")
-	Expect(err).NotTo(HaveOccurred())
-	defer conn.Close()
-
-	address := strings.Split(conn.Addr().String(), ":")
-	return address[1]
 }

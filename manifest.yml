@@ -1,0 +1,11 @@
+applications:
+- name: claimer
+  buildpack: go_buildpack
+  health-check-type: process
+  no-route: true
+  env:
+    GOPACKAGENAME: github.com/mdelillo/claimer
+    API_TOKEN:
+    CHANNEL_ID:
+    REPO_URL:
+    DEPLOY_KEY:
