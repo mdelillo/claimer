@@ -2,7 +2,7 @@
 
 Claimer is a slack bot for managing locks in a [concourse resource pool](https://github.com/concourse/pool-resource)
 
-<img src="https://cloud.githubusercontent.com/assets/6590106/24130971/28be872e-0dc2-11e7-930a-ff62c9853d0a.png" alt="Claimer demo" width="500" height="658">
+<img src="https://cloud.githubusercontent.com/assets/6590106/24151827/34a09312-0e20-11e7-9c16-f0fc1693bd16.png" alt="Claimer demo" width="500" height="658">
 
 ## Installation
 
