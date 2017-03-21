@@ -69,9 +69,9 @@ var _ = Describe("Claimer", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		defer resetClaimerTestPool(gitDir)
+		defer resetClaimerTestPool(gitDir, deployKey)
 
-		resetClaimerTestPool(gitDir)
+		resetClaimerTestPool(gitDir, deployKey)
 
 		claimerCommand := exec.Command(
 			claimer,
@@ -99,7 +99,7 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Claimed pool-1"))
-		updateGitRepo(gitDir)
+		updateGitRepo(gitDir, deployKey)
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeAnExistingFile())
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).NotTo(BeAnExistingFile())
 
@@ -126,7 +126,7 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("Released pool-1"))
-		updateGitRepo(gitDir)
+		updateGitRepo(gitDir, deployKey)
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).To(BeAnExistingFile())
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).NotTo(BeAnExistingFile())
 
@@ -271,22 +271,30 @@ func latestSlackMessage(channelId, apiToken string) string {
 	return slackResponse.Messages[0].Text
 }
 
-func updateGitRepo(gitDir string) {
-	runGitCommand(gitDir, "fetch")
-	runGitCommand(gitDir, "reset", "--hard", "origin/master")
+func updateGitRepo(gitDir, deployKey string) {
+	runGitCommand(gitDir, deployKey, "fetch")
+	runGitCommand(gitDir, deployKey, "reset", "--hard", "origin/master")
 }
 
-func resetClaimerTestPool(gitDir string) {
-	runGitCommand(gitDir, "checkout", "master")
-	runGitCommand(gitDir, "reset", "--hard", "initial-state")
-	runGitCommand(gitDir, "push", "--force", "origin", "master")
-
+func resetClaimerTestPool(gitDir, deployKey string) {
+	runGitCommand(gitDir, deployKey, "checkout", "master")
+	runGitCommand(gitDir, deployKey, "reset", "--hard", "initial-state")
+	runGitCommand(gitDir, deployKey, "push", "--force", "origin", "master")
 }
 
-func runGitCommand(dir string, args ...string) {
+func runGitCommand(dir, deployKey string, args ...string) {
+	deployKeyDir, err := ioutil.TempDir("", "claimer-integration-test-deploy-key")
+	Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(deployKeyDir)
+
+	deployKeyPath := filepath.Join(deployKeyDir, "key.pem")
+	Expect(ioutil.WriteFile(deployKeyPath, []byte(deployKey), 0600)).To(Succeed())
+
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
-	ExpectWithOffset(1, cmd.Run()).To(Succeed())
+	cmd.Env = append(os.Environ(), fmt.Sprintf(`GIT_SSH_COMMAND=/usr/bin/ssh -i %s`, deployKeyPath))
+	output, err := cmd.CombinedOutput()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), fmt.Sprintf("Error running git command: %s", string(output)))
 }
 
 func freePort() string {
