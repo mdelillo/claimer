@@ -18,6 +18,8 @@ type fs interface {
 	Ls(dir string) ([]string, error)
 	LsDirs(dir string) ([]string, error)
 	Mv(src, dst string) error
+	Rm(path string) error
+	Touch(file string) error
 }
 
 type locker struct {
@@ -55,6 +57,40 @@ func (l *locker) ClaimLock(pool, user string) error {
 	}
 
 	if err := l.gitRepo.CommitAndPush("Claimer claiming "+pool, user); err != nil {
+		return errors.Wrap(err, "failed to commit and push")
+	}
+	return nil
+}
+
+func (l *locker) CreatePool(pool, user string) error {
+	if err := l.gitRepo.CloneOrPull(); err != nil {
+		return errors.Wrap(err, "failed to clone or pull")
+	}
+
+	if err := l.fs.Touch(filepath.Join(l.gitRepo.Dir(), pool, "claimed", ".gitkeep")); err != nil {
+		return errors.Wrap(err, "failed to touch 'claimed/.gitkeep'")
+	}
+	if err := l.fs.Touch(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", ".gitkeep")); err != nil {
+		return errors.Wrap(err, "failed to touch 'unclaimed/.gitkeep'")
+	}
+	if err := l.fs.Touch(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", pool)); err != nil {
+		return errors.Wrap(err, "failed to touch lock file")
+	}
+
+	if err := l.gitRepo.CommitAndPush("Claimer creating "+pool, user); err != nil {
+		return errors.Wrap(err, "failed to commit and push")
+	}
+	return nil
+}
+
+func (l *locker) DestroyPool(pool, user string) error {
+	if err := l.gitRepo.CloneOrPull(); err != nil {
+		return errors.Wrap(err, "failed to clone or pull")
+	}
+	if err := l.fs.Rm(filepath.Join(l.gitRepo.Dir(), pool)); err != nil {
+		return errors.Wrap(err, "failed to remove directory")
+	}
+	if err := l.gitRepo.CommitAndPush("Claimer destroying "+pool, user); err != nil {
 		return errors.Wrap(err, "failed to commit and push")
 	}
 	return nil

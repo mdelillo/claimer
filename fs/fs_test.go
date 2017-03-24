@@ -23,6 +23,48 @@ var _ = Describe("Fs", func() {
 		os.RemoveAll(tempDir)
 	})
 
+	Describe("Ls", func() {
+		It("lists non-hidden files in a directory", func() {
+			firstFile := "some-file"
+			secondFile := "some-other-file"
+
+			writeFile(filepath.Join(tempDir, firstFile), nil)
+			writeFile(filepath.Join(tempDir, secondFile), nil)
+			writeFile(filepath.Join(tempDir, ".some-hidden-file"), nil)
+			mkdir(filepath.Join(tempDir, "some-directory"))
+
+			Expect(NewFs().Ls(tempDir)).To(Equal([]string{firstFile, secondFile}))
+		})
+
+		Context("when listing the directory fails", func() {
+			It("returns an error", func() {
+				_, err := NewFs().Ls("some-bad-dir")
+				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
+			})
+		})
+	})
+
+	Describe("LsDirs", func() {
+		It("lists non-hidden directories", func() {
+			firstDir := "some-directory"
+			secondDir := "some-other-directory"
+
+			mkdir(filepath.Join(tempDir, firstDir))
+			mkdir(filepath.Join(tempDir, secondDir))
+			mkdir(filepath.Join(tempDir, ".some-hidden-directory"))
+			writeFile(filepath.Join(tempDir, "some-file"), nil)
+
+			Expect(NewFs().LsDirs(tempDir)).To(Equal([]string{firstDir, secondDir}))
+		})
+
+		Context("when listing the directory fails", func() {
+			It("returns an error", func() {
+				_, err := NewFs().LsDirs("some-bad-dir")
+				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
+			})
+		})
+	})
+
 	Describe("Mv", func() {
 		Context("when src exists and dst does not exist", func() {
 			It("moves src to dst", func() {
@@ -65,44 +107,30 @@ var _ = Describe("Fs", func() {
 		})
 	})
 
-	Describe("Ls", func() {
-		It("lists non-hidden files in a directory", func() {
-			firstFile := "some-file"
-			secondFile := "some-other-file"
+	Describe("Rm", func() {
+		It("recursively removes the path", func() {
+			mkdir(filepath.Join(tempDir, "some-dir"))
+			writeFile(filepath.Join(tempDir, "some-dir", "some-file"), nil)
 
-			writeFile(filepath.Join(tempDir, firstFile), nil)
-			writeFile(filepath.Join(tempDir, secondFile), nil)
-			writeFile(filepath.Join(tempDir, ".some-hidden-file"), nil)
-			mkdir(filepath.Join(tempDir, "some-directory"))
-
-			Expect(NewFs().Ls(tempDir)).To(Equal([]string{firstFile, secondFile}))
-		})
-
-		Context("when listing the directory fails", func() {
-			It("returns an error", func() {
-				_, err := NewFs().Ls("some-bad-dir")
-				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
-			})
+			Expect(NewFs().Rm(tempDir)).To(Succeed())
+			Expect(tempDir).NotTo(BeADirectory())
 		})
 	})
 
-	Describe("LsDirs", func() {
-		It("lists non-hidden directories", func() {
-			firstDir := "some-directory"
-			secondDir := "some-other-directory"
-
-			mkdir(filepath.Join(tempDir, firstDir))
-			mkdir(filepath.Join(tempDir, secondDir))
-			mkdir(filepath.Join(tempDir, ".some-hidden-directory"))
-			writeFile(filepath.Join(tempDir, "some-file"), nil)
-
-			Expect(NewFs().LsDirs(tempDir)).To(Equal([]string{firstDir, secondDir}))
+	Describe("Touch", func() {
+		It("touches a file and creates any required directories", func() {
+			file := filepath.Join(tempDir, "some", "nested", "file")
+			Expect(NewFs().Touch(file)).To(Succeed())
+			Expect(file).To(BeAnExistingFile())
 		})
 
-		Context("when listing the directory fails", func() {
+		Context("when creating the directory fails", func() {
 			It("returns an error", func() {
-				_, err := NewFs().LsDirs("some-bad-dir")
-				Expect(err).To(MatchError(ContainSubstring("failed to list directory: ")))
+				notADirectory := filepath.Join(tempDir, "not-a-directory")
+				writeFile(notADirectory, nil)
+
+				path := filepath.Join(notADirectory, "some-file")
+				Expect(NewFs().Touch(path)).To(MatchError(ContainSubstring("failed to create directory:")))
 			})
 		})
 	})

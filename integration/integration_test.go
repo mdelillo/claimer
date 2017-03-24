@@ -163,6 +163,26 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), otherChannelId, userApiToken)
 		Consistently(func() string { return latestSlackMessage(otherChannelId, apiToken) }, "10s").
 			Should(Equal(fmt.Sprintf("<@%s> help", botId)))
+
+		By("Creating a pool")
+		postSlackMessage(fmt.Sprintf("<@%s> create new-pool", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("Created new-pool"))
+
+		By("Trying to create a pool that already exists")
+		postSlackMessage(fmt.Sprintf("<@%s> create new-pool", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("new-pool already exists"))
+
+		By("Destroying a pool")
+		postSlackMessage(fmt.Sprintf("<@%s> destroy new-pool", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("Destroyed new-pool"))
+
+		By("Trying to destroy a pool that does not exist")
+		postSlackMessage(fmt.Sprintf("<@%s> destroy new-pool", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("new-pool does not exist"))
 	})
 })
 

@@ -111,6 +111,126 @@ var _ = Describe("Locker", func() {
 		})
 	})
 
+	Describe("CreatePool", func() {
+		It("creates a pool with an unclaimed lock", func() {
+			pool := "some-pool"
+			gitDir := "some-dir"
+			user := "some-user"
+
+			gitRepo.DirReturns(gitDir)
+
+			locker := NewLocker(fs, gitRepo)
+			Expect(locker.CreatePool(pool, user)).To(Succeed())
+
+			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+
+			Expect(fs.TouchCallCount()).To(Equal(3))
+			Expect(fs.TouchArgsForCall(0)).To(Equal(filepath.Join(gitDir, pool, "claimed", ".gitkeep")))
+			Expect(fs.TouchArgsForCall(1)).To(Equal(filepath.Join(gitDir, pool, "unclaimed", ".gitkeep")))
+			Expect(fs.TouchArgsForCall(2)).To(Equal(filepath.Join(gitDir, pool, "unclaimed", pool)))
+
+			message, actualUser := gitRepo.CommitAndPushArgsForCall(0)
+			Expect(gitRepo.CommitAndPushCallCount()).To(Equal(1))
+			Expect(message).To(Equal("Claimer creating " + pool))
+			Expect(actualUser).To(Equal(user))
+		})
+
+		Context("when cloning the repo fails", func() {
+			It("returns an error", func() {
+				gitRepo.CloneOrPullReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.CreatePool("", "")).To(MatchError("failed to clone or pull: some-error"))
+			})
+		})
+
+		Context("when touching claimed/.gitkeep fails", func() {
+			It("returns an error", func() {
+				fs.TouchReturnsOnCall(0, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.CreatePool("", "")).To(MatchError("failed to touch 'claimed/.gitkeep': some-error"))
+			})
+		})
+
+		Context("when touching unclaimed/.gitkeep fails", func() {
+			It("returns an error", func() {
+				fs.TouchReturnsOnCall(1, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.CreatePool("", "")).To(MatchError("failed to touch 'unclaimed/.gitkeep': some-error"))
+			})
+		})
+
+		Context("when touching the lock fails", func() {
+			It("returns an error", func() {
+				fs.TouchReturnsOnCall(2, errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.CreatePool("", "")).To(MatchError("failed to touch lock file: some-error"))
+			})
+		})
+
+		Context("when pushing fails", func() {
+			It("returns an error", func() {
+				gitRepo.CommitAndPushReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.CreatePool("", "")).To(MatchError("failed to commit and push: some-error"))
+			})
+		})
+	})
+
+	Describe("DestroyPool", func() {
+		It("Destroys a pool", func() {
+			pool := "some-pool"
+			gitDir := "some-dir"
+			user := "some-user"
+
+			gitRepo.DirReturns(gitDir)
+
+			locker := NewLocker(fs, gitRepo)
+			Expect(locker.DestroyPool(pool, user)).To(Succeed())
+
+			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+
+			Expect(fs.RmCallCount()).To(Equal(1))
+			Expect(fs.RmArgsForCall(0)).To(Equal(filepath.Join(gitDir, pool)))
+
+			message, actualUser := gitRepo.CommitAndPushArgsForCall(0)
+			Expect(gitRepo.CommitAndPushCallCount()).To(Equal(1))
+			Expect(message).To(Equal("Claimer destroying " + pool))
+			Expect(actualUser).To(Equal(user))
+		})
+
+		Context("when cloning the repo fails", func() {
+			It("returns an error", func() {
+				gitRepo.CloneOrPullReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.DestroyPool("", "")).To(MatchError("failed to clone or pull: some-error"))
+			})
+		})
+
+		Context("when removing the directory fails", func() {
+			It("returns an error", func() {
+				fs.RmReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.DestroyPool("", "")).To(MatchError("failed to remove directory: some-error"))
+			})
+		})
+
+		Context("when pushing fails", func() {
+			It("returns an error", func() {
+				gitRepo.CommitAndPushReturns(errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.DestroyPool("", "")).To(MatchError("failed to commit and push: some-error"))
+			})
+		})
+	})
+
 	Describe("Owner", func() {
 		It("returns the author and date of the latest commit to the pool", func() {
 			pool := "some-pool"

@@ -18,6 +18,30 @@ type FakeLocker struct {
 	claimLockReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreatePoolStub        func(pool, username string) error
+	createPoolMutex       sync.RWMutex
+	createPoolArgsForCall []struct {
+		pool     string
+		username string
+	}
+	createPoolReturns struct {
+		result1 error
+	}
+	createPoolReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DestroyPoolStub        func(pool, username string) error
+	destroyPoolMutex       sync.RWMutex
+	destroyPoolArgsForCall []struct {
+		pool     string
+		username string
+	}
+	destroyPoolReturns struct {
+		result1 error
+	}
+	destroyPoolReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ReleaseLockStub        func(pool, username string) error
 	releaseLockMutex       sync.RWMutex
 	releaseLockArgsForCall []struct {
@@ -107,6 +131,104 @@ func (fake *FakeLocker) ClaimLockReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.claimLockReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLocker) CreatePool(pool string, username string) error {
+	fake.createPoolMutex.Lock()
+	ret, specificReturn := fake.createPoolReturnsOnCall[len(fake.createPoolArgsForCall)]
+	fake.createPoolArgsForCall = append(fake.createPoolArgsForCall, struct {
+		pool     string
+		username string
+	}{pool, username})
+	fake.recordInvocation("CreatePool", []interface{}{pool, username})
+	fake.createPoolMutex.Unlock()
+	if fake.CreatePoolStub != nil {
+		return fake.CreatePoolStub(pool, username)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.createPoolReturns.result1
+}
+
+func (fake *FakeLocker) CreatePoolCallCount() int {
+	fake.createPoolMutex.RLock()
+	defer fake.createPoolMutex.RUnlock()
+	return len(fake.createPoolArgsForCall)
+}
+
+func (fake *FakeLocker) CreatePoolArgsForCall(i int) (string, string) {
+	fake.createPoolMutex.RLock()
+	defer fake.createPoolMutex.RUnlock()
+	return fake.createPoolArgsForCall[i].pool, fake.createPoolArgsForCall[i].username
+}
+
+func (fake *FakeLocker) CreatePoolReturns(result1 error) {
+	fake.CreatePoolStub = nil
+	fake.createPoolReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLocker) CreatePoolReturnsOnCall(i int, result1 error) {
+	fake.CreatePoolStub = nil
+	if fake.createPoolReturnsOnCall == nil {
+		fake.createPoolReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.createPoolReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLocker) DestroyPool(pool string, username string) error {
+	fake.destroyPoolMutex.Lock()
+	ret, specificReturn := fake.destroyPoolReturnsOnCall[len(fake.destroyPoolArgsForCall)]
+	fake.destroyPoolArgsForCall = append(fake.destroyPoolArgsForCall, struct {
+		pool     string
+		username string
+	}{pool, username})
+	fake.recordInvocation("DestroyPool", []interface{}{pool, username})
+	fake.destroyPoolMutex.Unlock()
+	if fake.DestroyPoolStub != nil {
+		return fake.DestroyPoolStub(pool, username)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.destroyPoolReturns.result1
+}
+
+func (fake *FakeLocker) DestroyPoolCallCount() int {
+	fake.destroyPoolMutex.RLock()
+	defer fake.destroyPoolMutex.RUnlock()
+	return len(fake.destroyPoolArgsForCall)
+}
+
+func (fake *FakeLocker) DestroyPoolArgsForCall(i int) (string, string) {
+	fake.destroyPoolMutex.RLock()
+	defer fake.destroyPoolMutex.RUnlock()
+	return fake.destroyPoolArgsForCall[i].pool, fake.destroyPoolArgsForCall[i].username
+}
+
+func (fake *FakeLocker) DestroyPoolReturns(result1 error) {
+	fake.DestroyPoolStub = nil
+	fake.destroyPoolReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLocker) DestroyPoolReturnsOnCall(i int, result1 error) {
+	fake.DestroyPoolStub = nil
+	if fake.destroyPoolReturnsOnCall == nil {
+		fake.destroyPoolReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.destroyPoolReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -265,6 +387,10 @@ func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.claimLockMutex.RLock()
 	defer fake.claimLockMutex.RUnlock()
+	fake.createPoolMutex.RLock()
+	defer fake.createPoolMutex.RUnlock()
+	fake.destroyPoolMutex.RLock()
+	defer fake.destroyPoolMutex.RUnlock()
 	fake.releaseLockMutex.RLock()
 	defer fake.releaseLockMutex.RUnlock()
 	fake.statusMutex.RLock()

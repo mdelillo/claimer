@@ -8,6 +8,8 @@ type Factory interface {
 //go:generate counterfeiter . locker
 type locker interface {
 	ClaimLock(pool, username string) error
+	CreatePool(pool, username string) error
+	DestroyPool(pool, username string) error
 	ReleaseLock(pool, username string) error
 	Status() (claimedLocks, unclaimedLocks []string, err error)
 	Owner(pool string) (username, date string, err error)
@@ -27,6 +29,20 @@ func (c *commandFactory) NewCommand(command string, args []string, username stri
 	switch command {
 	case "claim":
 		return &claimCommand{
+			locker:   c.locker,
+			command:  command,
+			args:     args,
+			username: username,
+		}
+	case "create":
+		return &createCommand{
+			locker:   c.locker,
+			command:  command,
+			args:     args,
+			username: username,
+		}
+	case "destroy":
+		return &destroyCommand{
 			locker:   c.locker,
 			command:  command,
 			args:     args,

@@ -44,6 +44,28 @@ type FakeFs struct {
 	mvReturnsOnCall map[int]struct {
 		result1 error
 	}
+	RmStub        func(path string) error
+	rmMutex       sync.RWMutex
+	rmArgsForCall []struct {
+		path string
+	}
+	rmReturns struct {
+		result1 error
+	}
+	rmReturnsOnCall map[int]struct {
+		result1 error
+	}
+	TouchStub        func(file string) error
+	touchMutex       sync.RWMutex
+	touchArgsForCall []struct {
+		file string
+	}
+	touchReturns struct {
+		result1 error
+	}
+	touchReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -199,6 +221,102 @@ func (fake *FakeFs) MvReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeFs) Rm(path string) error {
+	fake.rmMutex.Lock()
+	ret, specificReturn := fake.rmReturnsOnCall[len(fake.rmArgsForCall)]
+	fake.rmArgsForCall = append(fake.rmArgsForCall, struct {
+		path string
+	}{path})
+	fake.recordInvocation("Rm", []interface{}{path})
+	fake.rmMutex.Unlock()
+	if fake.RmStub != nil {
+		return fake.RmStub(path)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.rmReturns.result1
+}
+
+func (fake *FakeFs) RmCallCount() int {
+	fake.rmMutex.RLock()
+	defer fake.rmMutex.RUnlock()
+	return len(fake.rmArgsForCall)
+}
+
+func (fake *FakeFs) RmArgsForCall(i int) string {
+	fake.rmMutex.RLock()
+	defer fake.rmMutex.RUnlock()
+	return fake.rmArgsForCall[i].path
+}
+
+func (fake *FakeFs) RmReturns(result1 error) {
+	fake.RmStub = nil
+	fake.rmReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFs) RmReturnsOnCall(i int, result1 error) {
+	fake.RmStub = nil
+	if fake.rmReturnsOnCall == nil {
+		fake.rmReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.rmReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFs) Touch(file string) error {
+	fake.touchMutex.Lock()
+	ret, specificReturn := fake.touchReturnsOnCall[len(fake.touchArgsForCall)]
+	fake.touchArgsForCall = append(fake.touchArgsForCall, struct {
+		file string
+	}{file})
+	fake.recordInvocation("Touch", []interface{}{file})
+	fake.touchMutex.Unlock()
+	if fake.TouchStub != nil {
+		return fake.TouchStub(file)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.touchReturns.result1
+}
+
+func (fake *FakeFs) TouchCallCount() int {
+	fake.touchMutex.RLock()
+	defer fake.touchMutex.RUnlock()
+	return len(fake.touchArgsForCall)
+}
+
+func (fake *FakeFs) TouchArgsForCall(i int) string {
+	fake.touchMutex.RLock()
+	defer fake.touchMutex.RUnlock()
+	return fake.touchArgsForCall[i].file
+}
+
+func (fake *FakeFs) TouchReturns(result1 error) {
+	fake.TouchStub = nil
+	fake.touchReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFs) TouchReturnsOnCall(i int, result1 error) {
+	fake.TouchStub = nil
+	if fake.touchReturnsOnCall == nil {
+		fake.touchReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.touchReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeFs) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -208,6 +326,10 @@ func (fake *FakeFs) Invocations() map[string][][]interface{} {
 	defer fake.lsDirsMutex.RUnlock()
 	fake.mvMutex.RLock()
 	defer fake.mvMutex.RUnlock()
+	fake.rmMutex.RLock()
+	defer fake.rmMutex.RUnlock()
+	fake.touchMutex.RLock()
+	defer fake.touchMutex.RUnlock()
 	return fake.invocations
 }
 
