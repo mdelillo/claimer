@@ -23,7 +23,7 @@ var _ = Describe("CreateCommand", func() {
 
 			locker.StatusReturns([]string{}, []string{}, nil)
 
-			command := NewFactory(locker).NewCommand("create", []string{pool}, username)
+			command := NewFactory(locker).NewCommand("create", pool, username)
 
 			slackResponse, err := command.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -37,7 +37,7 @@ var _ = Describe("CreateCommand", func() {
 
 		Context("when no pool is specified", func() {
 			It("returns an error", func() {
-				command := NewFactory(locker).NewCommand("create", []string{}, "")
+				command := NewFactory(locker).NewCommand("create", "", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("no pool specified"))
@@ -49,7 +49,7 @@ var _ = Describe("CreateCommand", func() {
 			It("returns an error", func() {
 				locker.StatusReturns(nil, nil, errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("create", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("create", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))
@@ -63,7 +63,7 @@ var _ = Describe("CreateCommand", func() {
 
 				locker.StatusReturns([]string{pool}, []string{}, nil)
 
-				command := NewFactory(locker).NewCommand("create", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("create", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -77,7 +77,7 @@ var _ = Describe("CreateCommand", func() {
 
 				locker.StatusReturns([]string{}, []string{pool}, nil)
 
-				command := NewFactory(locker).NewCommand("create", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("create", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -89,7 +89,7 @@ var _ = Describe("CreateCommand", func() {
 			It("returns an error", func() {
 				locker.CreatePoolReturns(errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("create", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("create", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to create pool: some-error"))

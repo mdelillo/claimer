@@ -77,17 +77,21 @@ func (r *repo) Dir() string {
 	return r.dir
 }
 
-func (r *repo) LatestCommit(path string) (string, string, error) {
-	authorOutput, err := r.run("log", "-1", "--format=%an", path)
+func (r *repo) LatestCommit(path string) (string, string, string, error) {
+	author, err := r.run("log", "-1", "--format=%an", path)
 	if err != nil {
-		return "", "", errors.Errorf("failed to get commit author: %s: %s", err, string(authorOutput))
+		return "", "", "", errors.Errorf("failed to get commit author: %s: %s", err, string(author))
 	}
-	dateOutput, err := r.run("log", "-1", "--format=%ad", path)
+	date, err := r.run("log", "-1", "--format=%ad", path)
 	if err != nil {
-		return "", "", errors.Errorf("failed to get commit date: %s: %s", err, string(dateOutput))
+		return "", "", "", errors.Errorf("failed to get commit date: %s: %s", err, string(date))
+	}
+	body, err := r.run("log", "-1", "--format=%b", path)
+	if err != nil {
+		return "", "", "", errors.Errorf("failed to get commit body: %s: %s", err, string(date))
 	}
 
-	return strings.TrimSpace(string(authorOutput)), strings.TrimSpace(string(dateOutput)), nil
+	return strings.TrimSpace(string(author)), strings.TrimSpace(string(date)), strings.TrimSpace(string(body)), nil
 }
 
 func (r *repo) cloned() bool {

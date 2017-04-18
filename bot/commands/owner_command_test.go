@@ -18,16 +18,37 @@ var _ = Describe("OwnerCommand", func() {
 			locker = new(commandsfakes.FakeLocker)
 		})
 
-		Context("when the lock is claimed", func() {
-			It("responds with the owner of the lock", func() {
+		Context("when the lock is claimed with a message", func() {
+			It("responds with the owner, date, and message of the lock", func() {
+				pool := "some-pool"
+				owner := "some-owner"
+				claimDate := "some-date"
+				message := "some message"
+
+				locker.StatusReturns([]string{pool}, []string{}, nil)
+				locker.OwnerReturns(owner, claimDate, message, nil)
+
+				command := NewFactory(locker).NewCommand("owner", pool, "")
+
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal(fmt.Sprintf("%s was claimed by %s on %s (%s)", pool, owner, claimDate, message)))
+
+				Expect(locker.OwnerCallCount()).To(Equal(1))
+				Expect(locker.OwnerArgsForCall(0)).To(Equal(pool))
+			})
+		})
+
+		Context("when the lock is claimed without a message", func() {
+			It("responds with the owner and date of the lock", func() {
 				pool := "some-pool"
 				owner := "some-owner"
 				claimDate := "some-date"
 
 				locker.StatusReturns([]string{pool}, []string{}, nil)
-				locker.OwnerReturns(owner, claimDate, nil)
+				locker.OwnerReturns(owner, claimDate, "", nil)
 
-				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -44,7 +65,7 @@ var _ = Describe("OwnerCommand", func() {
 
 				locker.StatusReturns([]string{}, []string{}, nil)
 
-				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -54,7 +75,7 @@ var _ = Describe("OwnerCommand", func() {
 
 		Context("when no pool is specified", func() {
 			It("returns an error", func() {
-				command := NewFactory(locker).NewCommand("owner", []string{}, "")
+				command := NewFactory(locker).NewCommand("owner", "", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("no pool specified"))
@@ -68,7 +89,7 @@ var _ = Describe("OwnerCommand", func() {
 
 				locker.StatusReturns([]string{pool}, []string{}, errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))
@@ -81,9 +102,9 @@ var _ = Describe("OwnerCommand", func() {
 				pool := "some-pool"
 
 				locker.StatusReturns([]string{pool}, []string{}, nil)
-				locker.OwnerReturns("", "", errors.New("some-error"))
+				locker.OwnerReturns("", "", "", errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("owner", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get lock owner: some-error"))

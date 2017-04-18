@@ -24,7 +24,7 @@ var _ = Describe("StatusCommand", func() {
 				nil,
 			)
 
-			command := NewFactory(locker).NewCommand("status", []string{}, "")
+			command := NewFactory(locker).NewCommand("status", "", "")
 
 			slackResponse, err := command.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -35,7 +35,7 @@ var _ = Describe("StatusCommand", func() {
 			It("returns an error", func() {
 				locker.StatusReturns(nil, nil, errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("status", []string{}, "")
+				command := NewFactory(locker).NewCommand("status", "", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))

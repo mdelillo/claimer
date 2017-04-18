@@ -201,10 +201,11 @@ var _ = Describe("Repo", func() {
 			os.RemoveAll(gitRemoteDir)
 		})
 
-		It("returns the author and date for the given path", func() {
+		It("returns the author, date, and body for the given path", func() {
 			newFileName := "some-new-file"
 			author := "some-author"
 			date := "Tue Nov 10 23:00:00 2009 +0000"
+			body := "some body"
 
 			touchFile(filepath.Join(gitDir, newFileName))
 
@@ -214,20 +215,21 @@ var _ = Describe("Repo", func() {
 				"commit",
 				"--author", author+" <>",
 				"--date", date,
-				"-m", "some-commit-message",
+				"-m", "some-commit-message\n\n"+body,
 			)
 
 			repo := NewRepo(gitRemoteUrl, "", gitDir)
-			actualAuthor, actualDate, err := repo.LatestCommit(newFileName)
+			actualAuthor, actualDate, actualBody, err := repo.LatestCommit(newFileName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualAuthor).To(Equal(author))
 			Expect(actualDate).To(Equal(date))
+			Expect(actualBody).To(Equal(body))
 		})
 
 		Context("when there is an error getting the log", func() {
 			It("returns an error", func() {
 				repo := NewRepo("", "", gitDir)
-				_, _, err := repo.LatestCommit("")
+				_, _, _, err := repo.LatestCommit("")
 				Expect(err).To(MatchError(ContainSubstring("failed to get commit author: ")))
 			})
 		})

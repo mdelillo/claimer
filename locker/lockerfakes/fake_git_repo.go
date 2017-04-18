@@ -36,7 +36,7 @@ type FakeGitRepo struct {
 	dirReturnsOnCall map[int]struct {
 		result1 string
 	}
-	LatestCommitStub        func(pool string) (committer, date string, err error)
+	LatestCommitStub        func(pool string) (committer, date, message string, err error)
 	latestCommitMutex       sync.RWMutex
 	latestCommitArgsForCall []struct {
 		pool string
@@ -44,12 +44,14 @@ type FakeGitRepo struct {
 	latestCommitReturns struct {
 		result1 string
 		result2 string
-		result3 error
+		result3 string
+		result4 error
 	}
 	latestCommitReturnsOnCall map[int]struct {
 		result1 string
 		result2 string
-		result3 error
+		result3 string
+		result4 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -184,7 +186,7 @@ func (fake *FakeGitRepo) DirReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeGitRepo) LatestCommit(pool string) (committer, date string, err error) {
+func (fake *FakeGitRepo) LatestCommit(pool string) (committer, date, message string, err error) {
 	fake.latestCommitMutex.Lock()
 	ret, specificReturn := fake.latestCommitReturnsOnCall[len(fake.latestCommitArgsForCall)]
 	fake.latestCommitArgsForCall = append(fake.latestCommitArgsForCall, struct {
@@ -196,9 +198,9 @@ func (fake *FakeGitRepo) LatestCommit(pool string) (committer, date string, err 
 		return fake.LatestCommitStub(pool)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	return fake.latestCommitReturns.result1, fake.latestCommitReturns.result2, fake.latestCommitReturns.result3
+	return fake.latestCommitReturns.result1, fake.latestCommitReturns.result2, fake.latestCommitReturns.result3, fake.latestCommitReturns.result4
 }
 
 func (fake *FakeGitRepo) LatestCommitCallCount() int {
@@ -213,29 +215,32 @@ func (fake *FakeGitRepo) LatestCommitArgsForCall(i int) string {
 	return fake.latestCommitArgsForCall[i].pool
 }
 
-func (fake *FakeGitRepo) LatestCommitReturns(result1 string, result2 string, result3 error) {
+func (fake *FakeGitRepo) LatestCommitReturns(result1 string, result2 string, result3 string, result4 error) {
 	fake.LatestCommitStub = nil
 	fake.latestCommitReturns = struct {
 		result1 string
 		result2 string
-		result3 error
-	}{result1, result2, result3}
+		result3 string
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeGitRepo) LatestCommitReturnsOnCall(i int, result1 string, result2 string, result3 error) {
+func (fake *FakeGitRepo) LatestCommitReturnsOnCall(i int, result1 string, result2 string, result3 string, result4 error) {
 	fake.LatestCommitStub = nil
 	if fake.latestCommitReturnsOnCall == nil {
 		fake.latestCommitReturnsOnCall = make(map[int]struct {
 			result1 string
 			result2 string
-			result3 error
+			result3 string
+			result4 error
 		})
 	}
 	fake.latestCommitReturnsOnCall[i] = struct {
 		result1 string
 		result2 string
-		result3 error
-	}{result1, result2, result3}
+		result3 string
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeGitRepo) Invocations() map[string][][]interface{} {

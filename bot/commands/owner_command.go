@@ -3,19 +3,21 @@ package commands
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type ownerCommand struct {
 	locker  locker
 	command string
-	args    []string
+	args    string
 }
 
 func (o *ownerCommand) Execute() (string, error) {
-	if len(o.args) < 1 {
+	args := strings.Fields(o.args)
+	if len(args) < 1 {
 		return "", errors.New("no pool specified")
 	}
-	pool := o.args[0]
+	pool := args[0]
 
 	claimedPools, _, err := o.locker.Status()
 	if err != nil {
@@ -25,10 +27,14 @@ func (o *ownerCommand) Execute() (string, error) {
 		return pool + " is not claimed", nil
 	}
 
-	owner, date, err := o.locker.Owner(pool)
+	owner, date, message, err := o.locker.Owner(pool)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get lock owner")
 	}
 
-	return fmt.Sprintf("%s was claimed by %s on %s", pool, owner, date), nil
+	response := fmt.Sprintf("%s was claimed by %s on %s", pool, owner, date)
+	if message != "" {
+		response = fmt.Sprintf("%s (%s)", response, message)
+	}
+	return response, nil
 }

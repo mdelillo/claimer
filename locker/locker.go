@@ -10,7 +10,7 @@ type gitRepo interface {
 	CloneOrPull() error
 	CommitAndPush(message, user string) error
 	Dir() string
-	LatestCommit(pool string) (committer, date string, err error)
+	LatestCommit(pool string) (committer, date, message string, err error)
 }
 
 //go:generate counterfeiter . fs
@@ -34,7 +34,7 @@ func NewLocker(fs fs, gitRepo gitRepo) *locker {
 	}
 }
 
-func (l *locker) ClaimLock(pool, user string) error {
+func (l *locker) ClaimLock(pool, user, message string) error {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
 		return errors.Wrap(err, "failed to clone or pull")
 	}
@@ -56,7 +56,11 @@ func (l *locker) ClaimLock(pool, user string) error {
 		return errors.Wrap(err, "failed to move file")
 	}
 
-	if err := l.gitRepo.CommitAndPush("Claimer claiming "+pool, user); err != nil {
+	commitMessage := "Claimer claiming " + pool
+	if message != "" {
+		commitMessage += "\n\n" + message
+	}
+	if err := l.gitRepo.CommitAndPush(commitMessage, user); err != nil {
 		return errors.Wrap(err, "failed to commit and push")
 	}
 	return nil
@@ -96,16 +100,16 @@ func (l *locker) DestroyPool(pool, user string) error {
 	return nil
 }
 
-func (l *locker) Owner(pool string) (string, string, error) {
+func (l *locker) Owner(pool string) (string, string, string, error) {
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return "", "", errors.Wrap(err, "failed to clone or pull")
+		return "", "", "", errors.Wrap(err, "failed to clone or pull")
 	}
 
-	author, date, err := l.gitRepo.LatestCommit(pool)
+	author, date, message, err := l.gitRepo.LatestCommit(pool)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get latest commit")
+		return "", "", "", errors.Wrap(err, "failed to get latest commit")
 	}
-	return author, date, nil
+	return author, date, message, nil
 }
 
 func (l *locker) ReleaseLock(pool, user string) error {

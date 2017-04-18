@@ -34,31 +34,88 @@ var _ = Describe("Bot", func() {
 			logHook.Reset()
 		})
 
-		It("executes a command and posts the response in slack", func() {
-			cmd := "some-command"
-			arg := "some-arg"
-			channel := "some-channel"
-			username := "some-username"
-			message := "some-message"
+		Context("when arguments are provided", func() {
+			It("executes a command with arguments and posts the response in slack", func() {
+				cmd := "some-command"
+				args := "some-arg some-other-arg"
+				channel := "some-channel"
+				username := "some-username"
+				message := "some-message"
 
-			slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
-				messageHandler(fmt.Sprintf("@some-bot %s %s", cmd, arg), channel, username)
-				return nil
-			}
-			commandFactory.NewCommandReturns(command)
-			command.ExecuteReturns(message, nil)
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(fmt.Sprintf("@some-bot %s %s", cmd, args), channel, username)
+					return nil
+				}
+				commandFactory.NewCommandReturns(command)
+				command.ExecuteReturns(message, nil)
 
-			Expect(New(commandFactory, slackClient, logger).Run()).To(Succeed())
+				Expect(New(commandFactory, slackClient, logger).Run()).To(Succeed())
 
-			actualCmd, actualArgs, actualUsername := commandFactory.NewCommandArgsForCall(0)
-			Expect(actualCmd).To(Equal(cmd))
-			Expect(actualArgs).To(Equal([]string{arg}))
-			Expect(actualUsername).To(Equal(username))
+				actualCmd, actualArgs, actualUsername := commandFactory.NewCommandArgsForCall(0)
+				Expect(actualCmd).To(Equal(cmd))
+				Expect(actualArgs).To(Equal(args))
+				Expect(actualUsername).To(Equal(username))
 
-			actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
-			Expect(slackClient.PostMessageCallCount()).To(Equal(1))
-			Expect(actualChannel).To(Equal(channel))
-			Expect(actualMessage).To(Equal(message))
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal(message))
+			})
+		})
+
+		Context("when no arguments are provided", func() {
+			It("executes a command and posts the response in slack", func() {
+				cmd := "some-command"
+				channel := "some-channel"
+				username := "some-username"
+				message := "some-message"
+
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(fmt.Sprintf("@some-bot %s", cmd), channel, username)
+					return nil
+				}
+				commandFactory.NewCommandReturns(command)
+				command.ExecuteReturns(message, nil)
+
+				Expect(New(commandFactory, slackClient, logger).Run()).To(Succeed())
+
+				actualCmd, actualArgs, actualUsername := commandFactory.NewCommandArgsForCall(0)
+				Expect(actualCmd).To(Equal(cmd))
+				Expect(actualArgs).To(BeEmpty())
+				Expect(actualUsername).To(Equal(username))
+
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal(message))
+			})
+		})
+
+		Context("when no command is specified", func() {
+			It("uses an empty value for the command", func() {
+				channel := "some-channel"
+				username := "some-username"
+				message := "some-message"
+
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler("@some-bot", channel, username)
+					return nil
+				}
+				commandFactory.NewCommandReturns(command)
+				command.ExecuteReturns(message, nil)
+
+				Expect(New(commandFactory, slackClient, logger).Run()).To(Succeed())
+
+				actualCmd, actualArgs, actualUsername := commandFactory.NewCommandArgsForCall(0)
+				Expect(actualCmd).To(BeEmpty())
+				Expect(actualArgs).To(BeEmpty())
+				Expect(actualUsername).To(Equal(username))
+
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal(message))
+			})
 		})
 
 		Context("when listening fails", func() {

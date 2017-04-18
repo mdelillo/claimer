@@ -1,19 +1,23 @@
 package commands
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"strings"
+)
 
 type destroyCommand struct {
 	locker   locker
 	command  string
-	args     []string
+	args     string
 	username string
 }
 
 func (c *destroyCommand) Execute() (string, error) {
-	if len(c.args) < 1 {
+	args := strings.Fields(c.args)
+	if len(args) < 1 {
 		return "", errors.New("no pool specified")
 	}
-	pool := c.args[0]
+	pool := args[0]
 
 	claimedPools, unclaimedPools, err := c.locker.Status()
 	if err != nil {

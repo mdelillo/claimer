@@ -2,17 +2,17 @@ package commands
 
 //go:generate counterfeiter . Factory
 type Factory interface {
-	NewCommand(command string, args []string, username string) Command
+	NewCommand(command string, args string, username string) Command
 }
 
 //go:generate counterfeiter . locker
 type locker interface {
-	ClaimLock(pool, username string) error
+	ClaimLock(pool, username, message string) error
 	CreatePool(pool, username string) error
 	DestroyPool(pool, username string) error
 	ReleaseLock(pool, username string) error
 	Status() (claimedLocks, unclaimedLocks []string, err error)
-	Owner(pool string) (username, date string, err error)
+	Owner(pool string) (username, date, message string, err error)
 }
 
 type commandFactory struct {
@@ -25,7 +25,7 @@ func NewFactory(locker locker) Factory {
 	}
 }
 
-func (c *commandFactory) NewCommand(command string, args []string, username string) Command {
+func (c *commandFactory) NewCommand(command string, args string, username string) Command {
 	switch command {
 	case "claim":
 		return &claimCommand{

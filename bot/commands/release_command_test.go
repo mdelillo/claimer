@@ -23,7 +23,7 @@ var _ = Describe("ReleaseCommand", func() {
 
 			locker.StatusReturns([]string{pool}, []string{}, nil)
 
-			command := NewFactory(locker).NewCommand("release", []string{pool}, username)
+			command := NewFactory(locker).NewCommand("release", pool, username)
 
 			slackResponse, err := command.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -37,7 +37,7 @@ var _ = Describe("ReleaseCommand", func() {
 
 		Context("when no pool is specified", func() {
 			It("returns an error", func() {
-				command := NewFactory(locker).NewCommand("release", []string{}, "")
+				command := NewFactory(locker).NewCommand("release", "", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("no pool specified"))
@@ -51,7 +51,7 @@ var _ = Describe("ReleaseCommand", func() {
 
 				locker.StatusReturns([]string{}, []string{}, nil)
 
-				command := NewFactory(locker).NewCommand("release", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("release", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -63,7 +63,7 @@ var _ = Describe("ReleaseCommand", func() {
 			It("returns an error", func() {
 				locker.StatusReturns(nil, nil, errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("release", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("release", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))
@@ -78,7 +78,7 @@ var _ = Describe("ReleaseCommand", func() {
 				locker.StatusReturns([]string{pool}, []string{}, nil)
 				locker.ReleaseLockReturns(errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("release", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("release", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to release lock: some-error"))

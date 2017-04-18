@@ -8,11 +8,11 @@ import (
 )
 
 type FakeFactory struct {
-	NewCommandStub        func(command string, args []string, username string) commands.Command
+	NewCommandStub        func(command string, args string, username string) commands.Command
 	newCommandMutex       sync.RWMutex
 	newCommandArgsForCall []struct {
 		command  string
-		args     []string
+		args     string
 		username string
 	}
 	newCommandReturns struct {
@@ -25,20 +25,15 @@ type FakeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFactory) NewCommand(command string, args []string, username string) commands.Command {
-	var argsCopy []string
-	if args != nil {
-		argsCopy = make([]string, len(args))
-		copy(argsCopy, args)
-	}
+func (fake *FakeFactory) NewCommand(command string, args string, username string) commands.Command {
 	fake.newCommandMutex.Lock()
 	ret, specificReturn := fake.newCommandReturnsOnCall[len(fake.newCommandArgsForCall)]
 	fake.newCommandArgsForCall = append(fake.newCommandArgsForCall, struct {
 		command  string
-		args     []string
+		args     string
 		username string
-	}{command, argsCopy, username})
-	fake.recordInvocation("NewCommand", []interface{}{command, argsCopy, username})
+	}{command, args, username})
+	fake.recordInvocation("NewCommand", []interface{}{command, args, username})
 	fake.newCommandMutex.Unlock()
 	if fake.NewCommandStub != nil {
 		return fake.NewCommandStub(command, args, username)
@@ -55,7 +50,7 @@ func (fake *FakeFactory) NewCommandCallCount() int {
 	return len(fake.newCommandArgsForCall)
 }
 
-func (fake *FakeFactory) NewCommandArgsForCall(i int) (string, []string, string) {
+func (fake *FakeFactory) NewCommandArgsForCall(i int) (string, string, string) {
 	fake.newCommandMutex.RLock()
 	defer fake.newCommandMutex.RUnlock()
 	return fake.newCommandArgsForCall[i].command, fake.newCommandArgsForCall[i].args, fake.newCommandArgsForCall[i].username

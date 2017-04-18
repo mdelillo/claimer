@@ -1,19 +1,23 @@
 package commands
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"strings"
+)
 
 type createCommand struct {
 	locker   locker
 	command  string
-	args     []string
+	args     string
 	username string
 }
 
 func (c *createCommand) Execute() (string, error) {
+	args := strings.Fields(c.args)
 	if len(c.args) < 1 {
 		return "", errors.New("no pool specified")
 	}
-	pool := c.args[0]
+	pool := args[0]
 
 	claimedPools, unclaimedPools, err := c.locker.Status()
 	if err != nil {

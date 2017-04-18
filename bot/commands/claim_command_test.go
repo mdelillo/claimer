@@ -17,27 +17,52 @@ var _ = Describe("ClaimCommand", func() {
 			locker = new(commandsfakes.FakeLocker)
 		})
 
-		It("claims the lock and returns a slack response", func() {
-			pool := "some-pool"
-			username := "some-username"
+		Context("when no message is provided", func() {
+			It("claims the lock and returns a slack response", func() {
+				pool := "some-pool"
+				username := "some-username"
 
-			locker.StatusReturns([]string{}, []string{pool}, nil)
+				locker.StatusReturns([]string{}, []string{pool}, nil)
 
-			command := NewFactory(locker).NewCommand("claim", []string{pool}, username)
+				command := NewFactory(locker).NewCommand("claim", pool, username)
 
-			slackResponse, err := command.Execute()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(slackResponse).To(Equal("Claimed " + pool))
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal("Claimed " + pool))
 
-			Expect(locker.ClaimLockCallCount()).To(Equal(1))
-			actualPool, actualUsername := locker.ClaimLockArgsForCall(0)
-			Expect(actualPool).To(Equal(pool))
-			Expect(actualUsername).To(Equal(username))
+				Expect(locker.ClaimLockCallCount()).To(Equal(1))
+				actualPool, actualUsername, actualMessage := locker.ClaimLockArgsForCall(0)
+				Expect(actualPool).To(Equal(pool))
+				Expect(actualUsername).To(Equal(username))
+				Expect(actualMessage).To(BeEmpty())
+			})
+		})
+
+		Context("when a message is provided", func() {
+			It("claims the lock passing along the message", func() {
+				pool := "some-pool"
+				message := "some message"
+				username := "some-username"
+
+				locker.StatusReturns([]string{}, []string{pool}, nil)
+
+				command := NewFactory(locker).NewCommand("claim", pool + " " + message, username)
+
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal("Claimed " + pool))
+
+				Expect(locker.ClaimLockCallCount()).To(Equal(1))
+				actualPool, actualUsername, actualMessage := locker.ClaimLockArgsForCall(0)
+				Expect(actualPool).To(Equal(pool))
+				Expect(actualUsername).To(Equal(username))
+				Expect(actualMessage).To(Equal(message))
+			})
 		})
 
 		Context("when no pool is specified", func() {
 			It("returns an error", func() {
-				command := NewFactory(locker).NewCommand("claim", []string{}, "")
+				command := NewFactory(locker).NewCommand("claim", "", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("no pool specified"))
@@ -51,7 +76,7 @@ var _ = Describe("ClaimCommand", func() {
 
 				locker.StatusReturns([]string{}, []string{}, nil)
 
-				command := NewFactory(locker).NewCommand("claim", []string{pool}, "")
+				command := NewFactory(locker).NewCommand("claim", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -63,7 +88,7 @@ var _ = Describe("ClaimCommand", func() {
 			It("returns an error", func() {
 				locker.StatusReturns(nil, nil, errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("claim", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("claim", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))
@@ -78,7 +103,7 @@ var _ = Describe("ClaimCommand", func() {
 				locker.StatusReturns([]string{}, []string{pool}, nil)
 				locker.ClaimLockReturns(errors.New("some-error"))
 
-				command := NewFactory(locker).NewCommand("claim", []string{"some-pool"}, "")
+				command := NewFactory(locker).NewCommand("claim", "some-pool", "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to claim lock: some-error"))
