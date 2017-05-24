@@ -3,6 +3,8 @@ package commandsfakes
 
 import (
 	"sync"
+
+	clocker "github.com/mdelillo/claimer/locker"
 )
 
 type FakeLocker struct {
@@ -55,35 +57,16 @@ type FakeLocker struct {
 	releaseLockReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StatusStub        func() (claimedLocks, unclaimedLocks []string, err error)
+	StatusStub        func() (locks []clocker.Lock, err error)
 	statusMutex       sync.RWMutex
 	statusArgsForCall []struct{}
 	statusReturns     struct {
-		result1 []string
-		result2 []string
-		result3 error
+		result1 []clocker.Lock
+		result2 error
 	}
 	statusReturnsOnCall map[int]struct {
-		result1 []string
-		result2 []string
-		result3 error
-	}
-	OwnerStub        func(pool string) (username, date, message string, err error)
-	ownerMutex       sync.RWMutex
-	ownerArgsForCall []struct {
-		pool string
-	}
-	ownerReturns struct {
-		result1 string
-		result2 string
-		result3 string
-		result4 error
-	}
-	ownerReturnsOnCall map[int]struct {
-		result1 string
-		result2 string
-		result3 string
-		result4 error
+		result1 []clocker.Lock
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -286,7 +269,7 @@ func (fake *FakeLocker) ReleaseLockReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLocker) Status() (claimedLocks, unclaimedLocks []string, err error) {
+func (fake *FakeLocker) Status() (locks []clocker.Lock, err error) {
 	fake.statusMutex.Lock()
 	ret, specificReturn := fake.statusReturnsOnCall[len(fake.statusArgsForCall)]
 	fake.statusArgsForCall = append(fake.statusArgsForCall, struct{}{})
@@ -296,9 +279,9 @@ func (fake *FakeLocker) Status() (claimedLocks, unclaimedLocks []string, err err
 		return fake.StatusStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
-	return fake.statusReturns.result1, fake.statusReturns.result2, fake.statusReturns.result3
+	return fake.statusReturns.result1, fake.statusReturns.result2
 }
 
 func (fake *FakeLocker) StatusCallCount() int {
@@ -307,86 +290,26 @@ func (fake *FakeLocker) StatusCallCount() int {
 	return len(fake.statusArgsForCall)
 }
 
-func (fake *FakeLocker) StatusReturns(result1 []string, result2 []string, result3 error) {
+func (fake *FakeLocker) StatusReturns(result1 []clocker.Lock, result2 error) {
 	fake.StatusStub = nil
 	fake.statusReturns = struct {
-		result1 []string
-		result2 []string
-		result3 error
-	}{result1, result2, result3}
+		result1 []clocker.Lock
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeLocker) StatusReturnsOnCall(i int, result1 []string, result2 []string, result3 error) {
+func (fake *FakeLocker) StatusReturnsOnCall(i int, result1 []clocker.Lock, result2 error) {
 	fake.StatusStub = nil
 	if fake.statusReturnsOnCall == nil {
 		fake.statusReturnsOnCall = make(map[int]struct {
-			result1 []string
-			result2 []string
-			result3 error
+			result1 []clocker.Lock
+			result2 error
 		})
 	}
 	fake.statusReturnsOnCall[i] = struct {
-		result1 []string
-		result2 []string
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeLocker) Owner(pool string) (username, date, message string, err error) {
-	fake.ownerMutex.Lock()
-	ret, specificReturn := fake.ownerReturnsOnCall[len(fake.ownerArgsForCall)]
-	fake.ownerArgsForCall = append(fake.ownerArgsForCall, struct {
-		pool string
-	}{pool})
-	fake.recordInvocation("Owner", []interface{}{pool})
-	fake.ownerMutex.Unlock()
-	if fake.OwnerStub != nil {
-		return fake.OwnerStub(pool)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3, ret.result4
-	}
-	return fake.ownerReturns.result1, fake.ownerReturns.result2, fake.ownerReturns.result3, fake.ownerReturns.result4
-}
-
-func (fake *FakeLocker) OwnerCallCount() int {
-	fake.ownerMutex.RLock()
-	defer fake.ownerMutex.RUnlock()
-	return len(fake.ownerArgsForCall)
-}
-
-func (fake *FakeLocker) OwnerArgsForCall(i int) string {
-	fake.ownerMutex.RLock()
-	defer fake.ownerMutex.RUnlock()
-	return fake.ownerArgsForCall[i].pool
-}
-
-func (fake *FakeLocker) OwnerReturns(result1 string, result2 string, result3 string, result4 error) {
-	fake.OwnerStub = nil
-	fake.ownerReturns = struct {
-		result1 string
-		result2 string
-		result3 string
-		result4 error
-	}{result1, result2, result3, result4}
-}
-
-func (fake *FakeLocker) OwnerReturnsOnCall(i int, result1 string, result2 string, result3 string, result4 error) {
-	fake.OwnerStub = nil
-	if fake.ownerReturnsOnCall == nil {
-		fake.ownerReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 string
-			result3 string
-			result4 error
-		})
-	}
-	fake.ownerReturnsOnCall[i] = struct {
-		result1 string
-		result2 string
-		result3 string
-		result4 error
-	}{result1, result2, result3, result4}
+		result1 []clocker.Lock
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeLocker) Invocations() map[string][][]interface{} {
@@ -402,8 +325,6 @@ func (fake *FakeLocker) Invocations() map[string][][]interface{} {
 	defer fake.releaseLockMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
-	fake.ownerMutex.RLock()
-	defer fake.ownerMutex.RUnlock()
 	return fake.invocations
 }
 

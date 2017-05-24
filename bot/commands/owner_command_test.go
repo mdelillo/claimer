@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
+	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,17 +26,18 @@ var _ = Describe("OwnerCommand", func() {
 				claimDate := "some-date"
 				message := "some message"
 
-				locker.StatusReturns([]string{pool}, []string{}, nil)
-				locker.OwnerReturns(owner, claimDate, message, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{
+						{Name: pool, Claimed: true, Owner: owner, Date: claimDate, Message: message},
+					},
+					nil,
+				)
 
 				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(slackResponse).To(Equal(fmt.Sprintf("%s was claimed by %s on %s (%s)", pool, owner, claimDate, message)))
-
-				Expect(locker.OwnerCallCount()).To(Equal(1))
-				Expect(locker.OwnerArgsForCall(0)).To(Equal(pool))
 			})
 		})
 
@@ -45,17 +47,32 @@ var _ = Describe("OwnerCommand", func() {
 				owner := "some-owner"
 				claimDate := "some-date"
 
-				locker.StatusReturns([]string{pool}, []string{}, nil)
-				locker.OwnerReturns(owner, claimDate, "", nil)
+				locker.StatusReturns(
+					[]clocker.Lock{
+						{Name: pool, Claimed: true, Owner: owner, Date: claimDate},
+					},
+					nil,
+				)
 
 				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(slackResponse).To(Equal(fmt.Sprintf("%s was claimed by %s on %s", pool, owner, claimDate)))
+			})
+		})
 
-				Expect(locker.OwnerCallCount()).To(Equal(1))
-				Expect(locker.OwnerArgsForCall(0)).To(Equal(pool))
+		Context("when the pool does not exist", func() {
+			It("returns a slack response", func() {
+				pool := "some-pool"
+
+				locker.StatusReturns(nil, nil)
+
+				command := NewFactory(locker).NewCommand("owner", pool, "")
+
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal(pool + " does not exist"))
 			})
 		})
 
@@ -63,7 +80,10 @@ var _ = Describe("OwnerCommand", func() {
 			It("returns a slack response", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 
 				command := NewFactory(locker).NewCommand("owner", pool, "")
 
@@ -87,27 +107,12 @@ var _ = Describe("OwnerCommand", func() {
 			It("returns an error", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{pool}, []string{}, errors.New("some-error"))
+				locker.StatusReturns(nil, errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("owner", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).To(MatchError("failed to get status of locks: some-error"))
-				Expect(slackResponse).To(BeEmpty())
-			})
-		})
-
-		Context("when checking the owner fails", func() {
-			It("returns an error", func() {
-				pool := "some-pool"
-
-				locker.StatusReturns([]string{pool}, []string{}, nil)
-				locker.OwnerReturns("", "", "", errors.New("some-error"))
-
-				command := NewFactory(locker).NewCommand("owner", pool, "")
-
-				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("failed to get lock owner: some-error"))
 				Expect(slackResponse).To(BeEmpty())
 			})
 		})

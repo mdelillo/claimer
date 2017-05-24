@@ -19,11 +19,14 @@ func (r *releaseCommand) Execute() (string, error) {
 	}
 	pool := args[0]
 
-	claimedPools, _, err := r.locker.Status()
+	locks, err := r.locker.Status()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
-	if !contains(claimedPools, pool) {
+	if !poolExists(pool, locks) {
+		return pool + " does not exist", nil
+	}
+	if !poolClaimed(pool, locks) {
 		return pool + " is not claimed", nil
 	}
 

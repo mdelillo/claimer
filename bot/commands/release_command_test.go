@@ -5,6 +5,7 @@ import (
 
 	"errors"
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
+	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +22,10 @@ var _ = Describe("ReleaseCommand", func() {
 			pool := "some-pool"
 			username := "some-username"
 
-			locker.StatusReturns([]string{pool}, []string{}, nil)
+			locker.StatusReturns(
+				[]clocker.Lock{{Name: pool, Claimed: true}},
+				nil,
+			)
 
 			command := NewFactory(locker).NewCommand("release", pool, username)
 
@@ -45,12 +49,28 @@ var _ = Describe("ReleaseCommand", func() {
 			})
 		})
 
+		Context("when the pool does not exist", func() {
+			It("returns a slack response", func() {
+				pool := "some-pool"
+
+				locker.StatusReturns(nil, nil)
+
+				command := NewFactory(locker).NewCommand("release", pool, "")
+
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal(pool + " does not exist"))
+			})
+		})
+
 		Context("when the pool is not claimed", func() {
 			It("returns a slack response", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{}, nil)
-
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 				command := NewFactory(locker).NewCommand("release", pool, "")
 
 				slackResponse, err := command.Execute()
@@ -61,7 +81,7 @@ var _ = Describe("ReleaseCommand", func() {
 
 		Context("when checking the status fails", func() {
 			It("returns an error", func() {
-				locker.StatusReturns(nil, nil, errors.New("some-error"))
+				locker.StatusReturns(nil, errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("release", "some-pool", "")
 
@@ -75,7 +95,10 @@ var _ = Describe("ReleaseCommand", func() {
 			It("returns an error", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{pool}, []string{}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: true}},
+					nil,
+				)
 				locker.ReleaseLockReturns(errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("release", "some-pool", "")

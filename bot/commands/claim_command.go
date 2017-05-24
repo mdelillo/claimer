@@ -19,19 +19,21 @@ func (c *claimCommand) Execute() (string, error) {
 	}
 	pool := args[0]
 
-	_, unclaimedPools, err := c.locker.Status()
+	locks, err := c.locker.Status()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
-	if !contains(unclaimedPools, pool) {
-		return pool + " is not available", nil
+	if !poolExists(pool, locks) {
+		return pool + " does not exist", nil
+	}
+	if poolClaimed(pool, locks) {
+		return pool + " is already claimed", nil
 	}
 
 	var message string
 	if len(args) > 1 {
 		message = args[1]
 	}
-
 	if err := c.locker.ClaimLock(pool, c.username, message); err != nil {
 		return "", errors.Wrap(err, "failed to claim lock")
 	}

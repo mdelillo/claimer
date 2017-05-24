@@ -4,11 +4,11 @@ import (
 	. "github.com/mdelillo/claimer/locker"
 
 	"errors"
+	"fmt"
 	"github.com/mdelillo/claimer/locker/lockerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"path/filepath"
-	"fmt"
 )
 
 var _ = Describe("Locker", func() {
@@ -263,67 +263,6 @@ var _ = Describe("Locker", func() {
 		})
 	})
 
-	Describe("Owner", func() {
-		It("returns the author, date, and message of the latest commit to the pool", func() {
-			pool := "some-pool"
-			author := "some-author"
-			date := "some-date"
-			message := "some message"
-
-			gitRepo.LatestCommitReturns(author, date, message, nil)
-
-			locker := NewLocker(fs, gitRepo)
-			owner, actualDate, actualMessage, err := locker.Owner(pool)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
-
-			Expect(owner).To(Equal(author))
-			Expect(actualDate).To(Equal(date))
-			Expect(actualMessage).To(Equal(message))
-		})
-
-		Context("when there is no message", func() {
-			It("returns the author and date with an empty message", func() {
-				pool := "some-pool"
-				author := "some-author"
-				date := "some-date"
-
-				gitRepo.LatestCommitReturns(author, date, "", nil)
-
-				locker := NewLocker(fs, gitRepo)
-				owner, actualDate, actualMessage, err := locker.Owner(pool)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
-
-				Expect(owner).To(Equal(author))
-				Expect(actualDate).To(Equal(date))
-				Expect(actualMessage).To(BeEmpty())
-			})
-		})
-
-		Context("when cloning the repo fails", func() {
-			It("returns an error", func() {
-				gitRepo.CloneOrPullReturns(errors.New("some-error"))
-
-				locker := NewLocker(fs, gitRepo)
-				_, _, _, err := locker.Owner("")
-				Expect(err).To(MatchError("failed to clone or pull: some-error"))
-			})
-		})
-
-		Context("when getting the author fails", func() {
-			It("returns an error", func() {
-				gitRepo.LatestCommitReturns("", "", "", errors.New("some-error"))
-
-				locker := NewLocker(fs, gitRepo)
-				_, _, _, err := locker.Owner("")
-				Expect(err).To(MatchError("failed to get latest commit: some-error"))
-			})
-		})
-	})
-
 	Describe("ReleaseLock", func() {
 		It("releases the lock file in the git repo", func() {
 			pool := "some-pool"
@@ -415,7 +354,11 @@ var _ = Describe("Locker", func() {
 	})
 
 	Describe("Status", func() {
-		It("returns lists of claimed and unclaimed pools", func() {
+		It("returns a list of pools with exactly one lock", func() {
+			author := "some-author"
+			date := "some-date"
+			message := "some-message"
+
 			gitDir := "some-dir"
 			gitRepo.DirReturns(gitDir)
 
@@ -440,13 +383,18 @@ var _ = Describe("Locker", func() {
 				}
 			}
 
+			gitRepo.LatestCommitReturns(author, date, message, nil)
+
 			locker := NewLocker(fs, gitRepo)
-			claimedPools, unclaimedPools, err := locker.Status()
+			locks, err := locker.Status()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(claimedPools).To(Equal([]string{"pool-1"}))
-			Expect(unclaimedPools).To(Equal([]string{"pool-2"}))
+			Expect(locks).To(ConsistOf(
+				Lock{Name: "pool-1", Claimed: true, Owner: author, Date: date, Message: message},
+				Lock{Name: "pool-2", Claimed: false},
+			))
 
 			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+			Expect(gitRepo.LatestCommitCallCount()).To(Equal(1))
 		})
 
 		Context("when cloning the repo fails", func() {
@@ -454,7 +402,7 @@ var _ = Describe("Locker", func() {
 				gitRepo.CloneOrPullReturns(errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				_, _, err := locker.Status()
+				_, err := locker.Status()
 				Expect(err).To(MatchError("failed to clone or pull: some-error"))
 			})
 		})
@@ -464,7 +412,7 @@ var _ = Describe("Locker", func() {
 				fs.LsDirsReturns(nil, errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				_, _, err := locker.Status()
+				_, err := locker.Status()
 				Expect(err).To(MatchError("failed to list pools: some-error"))
 			})
 		})
@@ -475,7 +423,7 @@ var _ = Describe("Locker", func() {
 				fs.LsReturns(nil, errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				_, _, err := locker.Status()
+				_, err := locker.Status()
 				Expect(err).To(MatchError("failed to list claimed locks: some-error"))
 			})
 		})
@@ -486,8 +434,20 @@ var _ = Describe("Locker", func() {
 				fs.LsReturnsOnCall(1, nil, errors.New("some-error"))
 
 				locker := NewLocker(fs, gitRepo)
-				_, _, err := locker.Status()
+				_, err := locker.Status()
 				Expect(err).To(MatchError("failed to list unclaimed locks: some-error"))
+			})
+		})
+
+		Context("when getting the author fails", func() {
+			It("returns an error", func() {
+				fs.LsDirsReturns([]string{"some-pool"}, nil)
+				fs.LsReturnsOnCall(0, []string{"some-lock"}, nil)
+				gitRepo.LatestCommitReturns("", "", "", errors.New("some-error"))
+
+				locker := NewLocker(fs, gitRepo)
+				_, err := locker.Status()
+				Expect(err).To(MatchError("failed to get latest commit: some-error"))
 			})
 		})
 	})

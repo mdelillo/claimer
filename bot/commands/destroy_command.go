@@ -19,11 +19,11 @@ func (c *destroyCommand) Execute() (string, error) {
 	}
 	pool := args[0]
 
-	claimedPools, unclaimedPools, err := c.locker.Status()
+	locks, err := c.locker.Status()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
-	if !contains(claimedPools, pool) && !contains(unclaimedPools, pool) {
+	if !poolExists(pool, locks) {
 		return pool + " does not exist", nil
 	}
 

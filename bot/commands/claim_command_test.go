@@ -3,10 +3,11 @@ package commands_test
 import (
 	. "github.com/mdelillo/claimer/bot/commands"
 
-	"errors"
-	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	clocker "github.com/mdelillo/claimer/locker"
+	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
+	"errors"
 )
 
 var _ = Describe("ClaimCommand", func() {
@@ -22,7 +23,10 @@ var _ = Describe("ClaimCommand", func() {
 				pool := "some-pool"
 				username := "some-username"
 
-				locker.StatusReturns([]string{}, []string{pool}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 
 				command := NewFactory(locker).NewCommand("claim", pool, username)
 
@@ -44,7 +48,10 @@ var _ = Describe("ClaimCommand", func() {
 				message := "some message"
 				username := "some-username"
 
-				locker.StatusReturns([]string{}, []string{pool}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 
 				command := NewFactory(locker).NewCommand("claim", pool + " " + message, username)
 
@@ -70,23 +77,40 @@ var _ = Describe("ClaimCommand", func() {
 			})
 		})
 
-		Context("when the pool is not available", func() {
+		Context("when the pool does not exist", func() {
 			It("returns a slack response", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{}, nil)
+				locker.StatusReturns(nil,nil)
 
 				command := NewFactory(locker).NewCommand("claim", pool, "")
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(slackResponse).To(Equal(pool + " is not available"))
+				Expect(slackResponse).To(Equal(pool + " does not exist"))
+			})
+		})
+
+		Context("when the pool is already claimed", func() {
+			It("returns a slack response", func() {
+				pool := "some-pool"
+
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: true}},
+					nil,
+				)
+
+				command := NewFactory(locker).NewCommand("claim", pool, "")
+
+				slackResponse, err := command.Execute()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal(pool + " is already claimed"))
 			})
 		})
 
 		Context("when checking the status fails", func() {
 			It("returns an error", func() {
-				locker.StatusReturns(nil, nil, errors.New("some-error"))
+				locker.StatusReturns(nil, errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("claim", "some-pool", "")
 
@@ -100,7 +124,10 @@ var _ = Describe("ClaimCommand", func() {
 			It("returns an error", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{pool}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 				locker.ClaimLockReturns(errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("claim", "some-pool", "")

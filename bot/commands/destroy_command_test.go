@@ -5,6 +5,7 @@ import (
 
 	"errors"
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
+	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +22,10 @@ var _ = Describe("DestroyCommand", func() {
 			pool := "some-pool"
 			username := "some-username"
 
-			locker.StatusReturns([]string{pool}, []string{}, nil)
+			locker.StatusReturns(
+				[]clocker.Lock{{Name: pool, Claimed: true}},
+				nil,
+			)
 
 			command := NewFactory(locker).NewCommand("destroy", pool, username)
 
@@ -47,7 +51,7 @@ var _ = Describe("DestroyCommand", func() {
 
 		Context("when checking the status fails", func() {
 			It("returns an error", func() {
-				locker.StatusReturns(nil, nil, errors.New("some-error"))
+				locker.StatusReturns(nil, errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("destroy", "some-pool", "")
 
@@ -61,7 +65,7 @@ var _ = Describe("DestroyCommand", func() {
 			It("returns a slack response", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{}, nil)
+				locker.StatusReturns(nil, nil)
 
 				command := NewFactory(locker).NewCommand("destroy", pool, "")
 
@@ -75,7 +79,10 @@ var _ = Describe("DestroyCommand", func() {
 			It("returns an error", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns([]string{}, []string{pool}, nil)
+				locker.StatusReturns(
+					[]clocker.Lock{{Name: pool, Claimed: false}},
+					nil,
+				)
 				locker.DestroyPoolReturns(errors.New("some-error"))
 
 				command := NewFactory(locker).NewCommand("destroy", pool, "")

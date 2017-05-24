@@ -92,7 +92,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* pool-3\n*Unclaimed:* pool-1"))
+			Should(Equal("*Claimed by you:* \n*Claimed by others:* pool-3\n*Unclaimed:* pool-1"))
 
 		By("Claiming pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
@@ -105,7 +105,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* pool-1, pool-3\n*Unclaimed:* "))
+			Should(Equal("*Claimed by you:* pool-1\n*Claimed by others:* pool-3\n*Unclaimed:* "))
 
 		By("Checking the owner of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
@@ -119,7 +119,7 @@ var _ = Describe("Claimer", func() {
 		By("Trying to claim pool-1 again")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("pool-1 is not available"))
+			Should(Equal("pool-1 is already claimed"))
 
 		By("Releasing pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> release pool-1", botId), channelId, userApiToken)
@@ -132,7 +132,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* pool-3\n*Unclaimed:* pool-1"))
+			Should(Equal("*Claimed by you:* \n*Claimed by others:* pool-3\n*Unclaimed:* pool-1"))
 
 		By("Checking the status of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
@@ -159,12 +159,12 @@ var _ = Describe("Claimer", func() {
 		By("Trying to claim non-existent pool")
 		postSlackMessage(fmt.Sprintf("<@%s> claim non-existent-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("non-existent-pool is not available"))
+			Should(Equal("non-existent-pool does not exist"))
 
 		By("Trying to release non-existent-pool")
 		postSlackMessage(fmt.Sprintf("<@%s> release non-existent-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("non-existent-pool is not claimed"))
+			Should(Equal("non-existent-pool does not exist"))
 
 		By("Trying to run an unknown command")
 		postSlackMessage(fmt.Sprintf("<@%s> unknown-command", botId), channelId, userApiToken)

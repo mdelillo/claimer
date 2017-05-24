@@ -22,6 +22,14 @@ type fs interface {
 	Touch(file string) error
 }
 
+type Lock struct {
+	Name    string
+	Owner   string
+	Date    string
+	Message string
+	Claimed bool
+}
+
 type locker struct {
 	fs      fs
 	gitRepo gitRepo
@@ -140,35 +148,47 @@ func (l *locker) ReleaseLock(pool, user string) error {
 	return nil
 }
 
-func (l *locker) Status() ([]string, []string, error) {
-	var claimedPools []string
-	var unclaimedPools []string
+func (l *locker) Status() ([]Lock, error) {
+	var locks []Lock
 
 	if err := l.gitRepo.CloneOrPull(); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to clone or pull")
+		return nil, errors.Wrap(err, "failed to clone or pull")
 	}
 
 	pools, err := l.fs.LsDirs(l.gitRepo.Dir())
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to list pools")
+		return nil, errors.Wrap(err, "failed to list pools")
 	}
 	for _, pool := range pools {
 		claimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "claimed"))
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to list claimed locks")
+			return nil, errors.Wrap(err, "failed to list claimed locks")
 		}
 		unclaimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to list unclaimed locks")
+			return nil, errors.Wrap(err, "failed to list unclaimed locks")
 		}
 
 		if len(claimedLocks) == 0 && len(unclaimedLocks) == 1 {
-			unclaimedPools = append(unclaimedPools, pool)
+			locks = append(locks, Lock{
+				Name: pool,
+				Claimed: false,
+			})
 		}
 		if len(claimedLocks) == 1 && len(unclaimedLocks) == 0 {
-			claimedPools = append(claimedPools, pool)
+			author, date, message, err := l.gitRepo.LatestCommit(pool)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get latest commit")
+			}
+			locks = append(locks, Lock{
+				Name: pool,
+				Claimed: true,
+				Owner: author,
+				Date: date,
+				Message: message,
+			})
 		}
 	}
 
-	return claimedPools, unclaimedPools, nil
+	return locks, nil
 }

@@ -1,6 +1,7 @@
 package commands
 
-//go:generate counterfeiter . Factory
+import clocker "github.com/mdelillo/claimer/locker"
+
 type Factory interface {
 	NewCommand(command string, args string, username string) Command
 }
@@ -11,8 +12,7 @@ type locker interface {
 	CreatePool(pool, username string) error
 	DestroyPool(pool, username string) error
 	ReleaseLock(pool, username string) error
-	Status() (claimedLocks, unclaimedLocks []string, err error)
-	Owner(pool string) (username, date, message string, err error)
+	Status() (locks []clocker.Lock, err error)
 }
 
 type commandFactory struct {
@@ -67,6 +67,7 @@ func (c *commandFactory) NewCommand(command string, args string, username string
 		return &statusCommand{
 			locker:  c.locker,
 			command: command,
+			username: username,
 		}
 	default:
 		return &unknownCommand{}
