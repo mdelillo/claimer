@@ -2,6 +2,7 @@ package slack
 
 import (
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/slack/requests"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
@@ -11,6 +12,7 @@ import (
 type client struct {
 	requestFactory requests.Factory
 	channelId      string
+	logger         *logrus.Logger
 }
 
 type rtmEvent struct {
@@ -23,10 +25,11 @@ type message struct {
 	User    string
 }
 
-func NewClient(requestFactory requests.Factory, channelId string) *client {
+func NewClient(requestFactory requests.Factory, channelId string, logger *logrus.Logger) *client {
 	return &client{
 		requestFactory: requestFactory,
 		channelId:      channelId,
+		logger:         logger,
 	}
 }
 
@@ -49,6 +52,7 @@ func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(st
 		return errors.Wrap(err, "failed to connect to websocket")
 	}
 
+	c.logger.Info("Listening for messages")
 	for {
 		var data []byte
 		if err := websocket.Message.Receive(ws, &data); err != nil {

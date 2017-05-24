@@ -42,6 +42,7 @@ func main() {
 		slack.NewClient(
 			requests.NewFactory("https://slack.com", *apiToken),
 			*channelId,
+			logger,
 		),
 		logger,
 	)

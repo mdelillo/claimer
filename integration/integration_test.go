@@ -82,7 +82,7 @@ var _ = Describe("Claimer", func() {
 		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(session).Should(gbytes.Say("Claimer starting"))
+		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
 
 		By("Displaying the help message")
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, userApiToken)

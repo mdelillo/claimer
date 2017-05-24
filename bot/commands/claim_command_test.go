@@ -3,11 +3,11 @@ package commands_test
 import (
 	. "github.com/mdelillo/claimer/bot/commands"
 
+	"errors"
+	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
+	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clocker "github.com/mdelillo/claimer/locker"
-	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
-	"errors"
 )
 
 var _ = Describe("ClaimCommand", func() {
@@ -53,7 +53,7 @@ var _ = Describe("ClaimCommand", func() {
 					nil,
 				)
 
-				command := NewFactory(locker).NewCommand("claim", pool + " " + message, username)
+				command := NewFactory(locker).NewCommand("claim", pool+" "+message, username)
 
 				slackResponse, err := command.Execute()
 				Expect(err).NotTo(HaveOccurred())
@@ -81,7 +81,7 @@ var _ = Describe("ClaimCommand", func() {
 			It("returns a slack response", func() {
 				pool := "some-pool"
 
-				locker.StatusReturns(nil,nil)
+				locker.StatusReturns(nil, nil)
 
 				command := NewFactory(locker).NewCommand("claim", pool, "")
 

@@ -5,6 +5,8 @@ import (
 
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	logrustest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/mdelillo/claimer/slack/requests/requestsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,6 +20,8 @@ var _ = Describe("Client", func() {
 		getUsernameRequest *requestsfakes.FakeGetUsernameRequest
 		postMessageRequest *requestsfakes.FakePostMessageRequest
 		startRtmRequest    *requestsfakes.FakeStartRtmRequest
+		logger             *logrus.Logger
+		logHook            *logrustest.Hook
 	)
 
 	BeforeEach(func() {
@@ -25,6 +29,11 @@ var _ = Describe("Client", func() {
 		getUsernameRequest = new(requestsfakes.FakeGetUsernameRequest)
 		postMessageRequest = new(requestsfakes.FakePostMessageRequest)
 		startRtmRequest = new(requestsfakes.FakeStartRtmRequest)
+		logger, logHook = logrustest.NewNullLogger()
+	})
+
+	AfterEach(func() {
+		logHook.Reset()
 	})
 
 	Describe("Listen", func() {
@@ -88,7 +97,7 @@ var _ = Describe("Client", func() {
 				Expect(actualUsername).To(Equal(username))
 			}
 
-			NewClient(requestFactory, channel).Listen(messageHandler)
+			NewClient(requestFactory, channel, logger).Listen(messageHandler)
 			Eventually(func() int { return messageCount }).Should(Equal(2))
 			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
 			Expect(requestFactory.NewStartRtmRequestCallCount()).To(Equal(1))
@@ -96,6 +105,9 @@ var _ = Describe("Client", func() {
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(0)).To(Equal(userId))
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(1)).To(Equal(userId))
 			Expect(getUsernameRequest.ExecuteCallCount()).To(Equal(2))
+			Expect(len(logHook.Entries)).To(Equal(1))
+			Expect(logHook.LastEntry().Level).To(Equal(logrus.InfoLevel))
+			Expect(logHook.LastEntry().Message).To(Equal("Listening for messages"))
 		})
 
 		Context("when there is an error starting the RTM session", func() {
@@ -103,7 +115,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns("", "", errors.New("some-error"))
 
-				client := NewClient(requestFactory, "")
+				client := NewClient(requestFactory, "", logger)
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("some-error")))
 			})
 		})
@@ -113,7 +125,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns("some-bad-url", "some-bot-id", nil)
 
-				client := NewClient(requestFactory, "")
+				client := NewClient(requestFactory, "", logger)
 				Expect(client.Listen(nil)).To(MatchError(MatchRegexp("failed to connect to websocket: .*some-bad-url.*")))
 			})
 		})
@@ -129,7 +141,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-				client := NewClient(requestFactory, "")
+				client := NewClient(requestFactory, "", logger)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse event: ")))
 			})
 		})
@@ -145,7 +157,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewStartRtmRequestReturns(startRtmRequest)
 				startRtmRequest.ExecuteReturns(websocketUrl, "some-bot-id", nil)
 
-				client := NewClient(requestFactory, "")
+				client := NewClient(requestFactory, "", logger)
 				Expect(client.Listen(nil)).To(MatchError(ContainSubstring("failed to parse message: ")))
 			})
 		})
@@ -172,7 +184,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewGetUsernameRequestReturns(getUsernameRequest)
 				getUsernameRequest.ExecuteReturns("", errors.New("some-error"))
 
-				client := NewClient(requestFactory, channel)
+				client := NewClient(requestFactory, channel, logger)
 				Expect(client.Listen(nil)).To(MatchError("failed to get username: some-error"))
 			})
 		})
@@ -186,7 +198,7 @@ var _ = Describe("Client", func() {
 			requestFactory.NewPostMessageRequestReturns(postMessageRequest)
 			postMessageRequest.ExecuteReturns(nil)
 
-			client := NewClient(requestFactory, channel)
+			client := NewClient(requestFactory, channel, logger)
 			Expect(client.PostMessage(channel, message)).To(Succeed())
 
 			actualChannel, actualMessage := requestFactory.NewPostMessageRequestArgsForCall(0)
@@ -199,7 +211,7 @@ var _ = Describe("Client", func() {
 				requestFactory.NewPostMessageRequestReturns(postMessageRequest)
 				postMessageRequest.ExecuteReturns(errors.New("some-error"))
 
-				client := NewClient(requestFactory, "")
+				client := NewClient(requestFactory, "", logger)
 				Expect(client.PostMessage("", "")).To(MatchError("failed to post message: some-error"))
 			})
 		})

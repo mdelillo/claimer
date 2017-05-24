@@ -171,7 +171,7 @@ func (l *locker) Status() ([]Lock, error) {
 
 		if len(claimedLocks) == 0 && len(unclaimedLocks) == 1 {
 			locks = append(locks, Lock{
-				Name: pool,
+				Name:    pool,
 				Claimed: false,
 			})
 		}
@@ -181,10 +181,10 @@ func (l *locker) Status() ([]Lock, error) {
 				return nil, errors.Wrap(err, "failed to get latest commit")
 			}
 			locks = append(locks, Lock{
-				Name: pool,
+				Name:    pool,
 				Claimed: true,
-				Owner: author,
-				Date: date,
+				Owner:   author,
+				Date:    date,
 				Message: message,
 			})
 		}

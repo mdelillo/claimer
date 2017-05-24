@@ -65,8 +65,8 @@ func (c *commandFactory) NewCommand(command string, args string, username string
 		}
 	case "status":
 		return &statusCommand{
-			locker:  c.locker,
-			command: command,
+			locker:   c.locker,
+			command:  command,
 			username: username,
 		}
 	default:
