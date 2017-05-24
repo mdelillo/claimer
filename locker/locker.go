@@ -157,16 +157,16 @@ func (l *locker) Status() ([]string, []string, error) {
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to list claimed locks")
 		}
-		if len(claimedLocks) > 0 {
+		unclaimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to list unclaimed locks")
+		}
+
+		if len(claimedLocks) == 0 && len(unclaimedLocks) == 1 {
+			unclaimedPools = append(unclaimedPools, pool)
+		}
+		if len(claimedLocks) == 1 && len(unclaimedLocks) == 0 {
 			claimedPools = append(claimedPools, pool)
-		} else {
-			unclaimedLocks, err := l.fs.Ls(filepath.Join(l.gitRepo.Dir(), pool, "unclaimed"))
-			if err != nil {
-				return nil, nil, errors.Wrap(err, "failed to list unclaimed locks")
-			}
-			if len(unclaimedLocks) > 0 {
-				unclaimedPools = append(unclaimedPools, pool)
-			}
 		}
 	}
 

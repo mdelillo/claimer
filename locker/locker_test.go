@@ -421,7 +421,7 @@ var _ = Describe("Locker", func() {
 
 			fs.LsDirsStub = func(dir string) ([]string, error) {
 				if dir == gitDir {
-					return []string{"pool-1", "pool-2", "empty-pool", "ful-pool"}, nil
+					return []string{"pool-1", "pool-2", "empty-pool", "full-pool"}, nil
 				} else {
 					return []string{}, nil
 				}

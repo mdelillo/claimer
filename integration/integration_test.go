@@ -92,7 +92,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
+			Should(Equal("*Claimed:* pool-3\n*Unclaimed:* pool-1"))
 
 		By("Claiming pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
@@ -105,7 +105,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* pool-1\n*Unclaimed:* pool-2"))
+			Should(Equal("*Claimed:* pool-1, pool-3\n*Unclaimed:* "))
 
 		By("Checking the owner of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
@@ -132,7 +132,7 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed:* \n*Unclaimed:* pool-1, pool-2"))
+			Should(Equal("*Claimed:* pool-3\n*Unclaimed:* pool-1"))
 
 		By("Checking the status of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
