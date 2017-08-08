@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type claimCommand struct {
@@ -15,7 +17,7 @@ type claimCommand struct {
 func (c *claimCommand) Execute() (string, error) {
 	args := strings.SplitN(c.args, " ", 2)
 	if len(c.args) < 1 {
-		return "", errors.New("no pool specified")
+		return "", errors.New(pool_not_specified_claim)
 	}
 	pool := args[0]
 
@@ -24,10 +26,10 @@ func (c *claimCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !poolExists(pool, locks) {
-		return pool + " does not exist", nil
+		return fmt.Sprintf(pool_does_not_exist_claim, pool), nil
 	}
 	if poolClaimed(pool, locks) {
-		return pool + " is already claimed", nil
+		return fmt.Sprintf(pool_already_claimed_claim, pool), nil
 	}
 
 	var message string
@@ -38,5 +40,5 @@ func (c *claimCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to claim lock")
 	}
 
-	return "Claimed " + pool, nil
+	return fmt.Sprintf(success_claim, pool), nil
 }

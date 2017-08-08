@@ -2,9 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"strings"
+
 	clocker "github.com/mdelillo/claimer/locker"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type ownerCommand struct {
@@ -25,14 +26,14 @@ func (o *ownerCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !poolExists(pool, locks) {
-		return pool + " does not exist", nil
+		return fmt.Sprintf(pool_does_not_exist_owner, pool), nil
 	}
 	if !poolClaimed(pool, locks) {
-		return pool + " is not claimed", nil
+		return fmt.Sprintf(pool_is_not_claimed_owner, pool), nil
 	}
 
 	lock := getLock(pool, locks)
-	response := fmt.Sprintf("%s was claimed by %s on %s", pool, lock.Owner, lock.Date)
+	response := fmt.Sprintf(success_owner, pool, lock.Owner, lock.Date)
 	if lock.Message != "" {
 		response = fmt.Sprintf("%s (%s)", response, lock.Message)
 	}
