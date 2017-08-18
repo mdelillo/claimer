@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type releaseCommand struct {
@@ -27,12 +29,12 @@ func (r *releaseCommand) Execute() (string, error) {
 		return pool + " does not exist", nil
 	}
 	if !poolClaimed(pool, locks) {
-		return pool + " is not claimed", nil
+		return fmt.Sprintf(pool_is_not_claimed_release, pool), nil
 	}
 
 	if err := r.locker.ReleaseLock(pool, r.username); err != nil {
 		return "", errors.Wrap(err, "failed to release lock")
 	}
 
-	return "Released " + pool, nil
+	return fmt.Sprintf(success_release, pool), nil
 }

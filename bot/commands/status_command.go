@@ -2,9 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"strings"
+
 	clocker "github.com/mdelillo/claimer/locker"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type statusCommand struct {
@@ -32,7 +33,7 @@ func (s *statusCommand) Execute() (string, error) {
 	})
 
 	return fmt.Sprintf(
-			"*Claimed by you:* %s\n*Claimed by others:* %s\n*Unclaimed:* %s",
+			success_status,
 			lockNames(usersClaimedLocks),
 			lockNames(otherClaimedLocks),
 			lockNames(unclaimedLocks),
