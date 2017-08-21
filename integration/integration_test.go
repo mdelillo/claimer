@@ -20,6 +20,11 @@ import (
 	"time"
 )
 
+const (
+	slackRateLimitDelay  = 200 * time.Millisecond
+	slackRequestAttempts = 5
+)
+
 var _ = Describe("Claimer", func() {
 	var (
 		claimer   string
@@ -207,57 +212,69 @@ func getEnv(name string) string {
 }
 
 func postSlackMessage(text, channelId, apiToken string) {
-	resp, err := http.PostForm(
-		"https://slack.com/api/chat.postMessage",
-		url.Values{
-			"token":   {apiToken},
-			"channel": {channelId},
-			"text":    {text},
-			"as_user": {"true"},
-		},
-	)
+	_, err := slackPostForm("https://slack.com/api/chat.postMessage", url.Values{
+		"token":   {apiToken},
+		"channel": {channelId},
+		"text":    {text},
+		"as_user": {"true"},
+	})
 	Expect(err).NotTo(HaveOccurred())
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	Expect(err).NotTo(HaveOccurred())
-
-	var slackResponse struct {
-		Ok    bool
-		Error string
-	}
-	Expect(json.Unmarshal(body, &slackResponse)).To(Succeed())
-
-	Expect(slackResponse.Ok).To(BeTrue(), fmt.Sprintf("Posting to slack failed: %s", slackResponse.Error))
 }
 
 func latestSlackMessage(channelId, apiToken string) string {
-	resp, err := http.PostForm(
-		"https://slack.com/api/channels.history",
-		url.Values{
-			"token":   {apiToken},
-			"channel": {channelId},
-			"count":   {"1"},
-		},
-	)
+	body, err := slackPostForm("https://slack.com/api/channels.history", url.Values{
+		"token":   {apiToken},
+		"channel": {channelId},
+		"count":   {"1"},
+	})
 	Expect(err).NotTo(HaveOccurred())
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	Expect(err).NotTo(HaveOccurred())
-
 	var slackResponse struct {
-		Ok       bool
 		Messages []struct {
 			Text string
 		}
-		Error string
 	}
 	Expect(json.Unmarshal(body, &slackResponse)).To(Succeed())
 
-	Expect(slackResponse.Ok).To(BeTrue(), fmt.Sprintf("Getting message from slack failed: %s", slackResponse.Error))
-
 	return slackResponse.Messages[0].Text
+}
+
+func slackPostForm(url string, values url.Values) ([]byte, error) {
+	delay := slackRateLimitDelay
+	for i := 0; i < slackRequestAttempts; i++ {
+		time.Sleep(delay)
+
+		body, err := postForm(url, values)
+		if err != nil {
+			return nil, err
+		}
+
+		var slackResponse struct {
+			Ok    bool
+			Error string
+		}
+		if err := json.Unmarshal(body, &slackResponse); err != nil {
+			return nil, err
+		}
+
+		if slackResponse.Ok {
+			return body, nil
+		} else if slackResponse.Error != "ratelimited" {
+			return nil, fmt.Errorf("Slack request failed: %s", slackResponse.Error)
+		}
+
+		delay *= 2
+	}
+	return nil, fmt.Errorf("Slack request failed %d times", slackRequestAttempts)
+}
+
+func postForm(url string, values url.Values) ([]byte, error) {
+	response, err := http.PostForm(url, values)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	return ioutil.ReadAll(response.Body)
 }
 
 func updateGitRepo(gitDir, deployKey string) {
