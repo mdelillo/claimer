@@ -1,7 +1,11 @@
 package commands
 
+import (
+	. "github.com/mdelillo/claimer/translate"
+)
+
 type unknownCommand struct{}
 
 func (*unknownCommand) Execute() (string, error) {
-	return "Unknown command. Try `@claimer help` to see usage.", nil
+	return T("unknown_command", nil), nil
 }

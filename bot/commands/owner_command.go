@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	clocker "github.com/mdelillo/claimer/locker"
+	. "github.com/mdelillo/claimer/translate"
 	"github.com/pkg/errors"
 )
 
@@ -26,14 +27,14 @@ func (o *ownerCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !poolExists(pool, locks) {
-		return fmt.Sprintf(pool_does_not_exist_owner, pool), nil
+		return T("owner.pool_does_not_exist", TArgs{"pool": pool}), nil
 	}
 	if !poolClaimed(pool, locks) {
-		return fmt.Sprintf(pool_is_not_claimed_owner, pool), nil
+		return T("owner.pool_is_not_claimed", TArgs{"pool": pool}), nil
 	}
 
 	lock := getLock(pool, locks)
-	response := fmt.Sprintf(success_owner, pool, lock.Owner, lock.Date)
+	response := T("owner.success", TArgs{"pool": pool, "owner": lock.Owner, "date": lock.Date})
 	if lock.Message != "" {
 		response = fmt.Sprintf("%s (%s)", response, lock.Message)
 	}

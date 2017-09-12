@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
+	. "github.com/mdelillo/claimer/translate"
 	"github.com/pkg/errors"
 )
 
@@ -26,12 +26,12 @@ func (c *createCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if poolExists(pool, locks) {
-		return pool + " already exists", nil
+		return T("create.pool_already_exists", TArgs{"pool": pool}), nil
 	}
 
 	if err := c.locker.CreatePool(pool, c.username); err != nil {
 		return "", errors.Wrap(err, "failed to create pool")
 	}
 
-	return fmt.Sprintf(success_create, pool), nil
+	return T("create.success", TArgs{"pool": pool}), nil
 }

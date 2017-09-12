@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
 	clocker "github.com/mdelillo/claimer/locker"
+	. "github.com/mdelillo/claimer/translate"
 	"github.com/pkg/errors"
 )
 
@@ -32,13 +32,12 @@ func (s *statusCommand) Execute() (string, error) {
 		return !lock.Claimed
 	})
 
-	return fmt.Sprintf(
-			success_status,
-			lockNames(usersClaimedLocks),
-			lockNames(otherClaimedLocks),
-			lockNames(unclaimedLocks),
-		),
-		nil
+	tArgs := TArgs{
+		"usersClaimed": lockNames(usersClaimedLocks),
+		"otherClaimed": lockNames(otherClaimedLocks),
+		"unclaimed":    lockNames(unclaimedLocks),
+	}
+	return T("status.success", tArgs), nil
 }
 
 func filterLocks(locks []clocker.Lock, filterFunc func(clocker.Lock) bool) []clocker.Lock {

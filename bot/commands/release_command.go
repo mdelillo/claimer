@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
+	. "github.com/mdelillo/claimer/translate"
 	"github.com/pkg/errors"
 )
 
@@ -26,15 +26,15 @@ func (r *releaseCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !poolExists(pool, locks) {
-		return pool + " does not exist", nil
+		return T("release.pool_does_not_exist", TArgs{"pool": pool}), nil
 	}
 	if !poolClaimed(pool, locks) {
-		return fmt.Sprintf(pool_is_not_claimed_release, pool), nil
+		return T("release.pool_is_not_claimed", TArgs{"pool": pool}), nil
 	}
 
 	if err := r.locker.ReleaseLock(pool, r.username); err != nil {
 		return "", errors.Wrap(err, "failed to release lock")
 	}
 
-	return fmt.Sprintf(success_release, pool), nil
+	return T("release.success", TArgs{"pool": pool}), nil
 }

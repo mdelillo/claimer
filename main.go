@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/bot"
 	"github.com/mdelillo/claimer/bot/commands"
@@ -11,8 +14,8 @@ import (
 	"github.com/mdelillo/claimer/locker"
 	"github.com/mdelillo/claimer/slack"
 	"github.com/mdelillo/claimer/slack/requests"
-	"io/ioutil"
-	"os"
+	"github.com/mdelillo/claimer/translate"
+	"github.com/mdelillo/claimer/translations"
 )
 
 func main() {
@@ -20,7 +23,13 @@ func main() {
 	channelId := flag.String("channelId", "", "ID of slack channel to listen in")
 	repoUrl := flag.String("repoUrl", "", "URL for git repository of locks")
 	deployKey := flag.String("deployKey", "", "Deploy key for Github")
+	// translationFile := flag.String("translationFile", "", "Yaml file with message translations")
 	flag.Parse()
+
+	if err := translate.LoadTranslations(translations.DefaultTranslations); err != nil {
+		fmt.Printf("Error loading translations: %s\n", err)
+		os.Exit(1)
+	}
 
 	logger := logrus.New()
 	logger.Out = os.Stdout

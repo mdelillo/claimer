@@ -1,9 +1,9 @@
 package commands_test
 
 import (
-	. "github.com/mdelillo/claimer/bot/commands"
-
 	"errors"
+
+	. "github.com/mdelillo/claimer/bot/commands"
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
 	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"

@@ -2,12 +2,15 @@ package translate
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 var translations map[interface{}]interface{}
+
+type TArgs map[string]string
 
 func LoadTranslationFile(path string) error {
 	translations = nil
@@ -17,6 +20,14 @@ func LoadTranslationFile(path string) error {
 		return fmt.Errorf("failed to read file: %s", path)
 	}
 
+	if err := yaml.Unmarshal(contents, &translations); err != nil {
+		return fmt.Errorf("failed to parse YAML: %s", contents)
+	}
+
+	return nil
+}
+
+func LoadTranslations(contents string) error {
 	if err := yaml.Unmarshal([]byte(contents), &translations); err != nil {
 		return fmt.Errorf("failed to parse YAML: %s", contents)
 	}
@@ -24,7 +35,7 @@ func LoadTranslationFile(path string) error {
 	return nil
 }
 
-func T(yamlPath string, vars map[string]string) string {
+func T(yamlPath string, vars TArgs) string {
 	splitPath := strings.Split(yamlPath, ".")
 	innerTranslations := translations
 	translatedString := ""

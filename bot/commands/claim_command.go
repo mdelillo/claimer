@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
+	. "github.com/mdelillo/claimer/translate"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +17,7 @@ type claimCommand struct {
 func (c *claimCommand) Execute() (string, error) {
 	args := strings.SplitN(c.args, " ", 2)
 	if len(c.args) < 1 {
-		return "", errors.New(pool_not_specified_claim)
+		return "", errors.New("no pool specified")
 	}
 	pool := args[0]
 
@@ -26,10 +26,10 @@ func (c *claimCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to get status of locks")
 	}
 	if !poolExists(pool, locks) {
-		return fmt.Sprintf(pool_does_not_exist_claim, pool), nil
+		return T("claim.pool_does_not_exist", TArgs{"pool": pool}), nil
 	}
 	if poolClaimed(pool, locks) {
-		return fmt.Sprintf(pool_already_claimed_claim, pool), nil
+		return T("claim.pool_is_already_claimed", TArgs{"pool": pool}), nil
 	}
 
 	var message string
@@ -40,5 +40,5 @@ func (c *claimCommand) Execute() (string, error) {
 		return "", errors.Wrap(err, "failed to claim lock")
 	}
 
-	return fmt.Sprintf(success_claim, pool), nil
+	return T("claim.success", TArgs{"pool": pool}), nil
 }

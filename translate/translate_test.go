@@ -3,10 +3,11 @@ package translate_test
 import (
 	. "github.com/mdelillo/claimer/translate"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Translate", func() {
@@ -15,6 +16,16 @@ var _ = Describe("Translate", func() {
 
 		AfterEach(func() {
 			os.RemoveAll(translationsPath)
+		})
+
+		Context("load from a string", func() {
+			It("translates using the provided yaml string", func() {
+				translation := "key1: val1"
+
+				Expect(LoadTranslations(translation)).To(Succeed())
+				Expect(T("key1", nil)).To(Equal("val1"))
+			})
+
 		})
 
 		Context("multiple translation files", func() {
@@ -31,8 +42,6 @@ key2: val2
 parent:
   child2: other-child-val2
   child3: other-child-val3`)
-				Expect(LoadTranslationFile(translationsPath)).To(Succeed())
-				Expect(LoadTranslationFile(otherTranslationsPath)).To(Succeed())
 			})
 
 			AfterEach(func() {
@@ -40,6 +49,8 @@ parent:
 			})
 
 			It("translates using only the last loaded file", func() {
+				Expect(LoadTranslationFile(translationsPath)).To(Succeed())
+				Expect(LoadTranslationFile(otherTranslationsPath)).To(Succeed())
 				Expect(T("key1", nil)).To(Equal("key1"))
 				Expect(T("key2", nil)).To(Equal("val2"))
 				Expect(T("parent.child1", nil)).To(Equal("parent.child1"))
@@ -55,7 +66,7 @@ parent:
 			})
 
 			It("interpolates the variables into the translated string", func() {
-				vars := map[string]string{
+				vars := TArgs{
 					"var1": "value1",
 					"var2": "value2",
 				}
@@ -63,7 +74,7 @@ parent:
 			})
 
 			It("does not interpolate variables that are not passed in", func() {
-				vars := map[string]string{
+				vars := TArgs{
 					"var2": "value2",
 				}
 				Expect(T("key", vars)).To(Equal("some {{.var1}} interpolated value2 string"))

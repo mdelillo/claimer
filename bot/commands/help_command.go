@@ -1,7 +1,11 @@
 package commands
 
+import (
+	. "github.com/mdelillo/claimer/translate"
+)
+
 type helpCommand struct{}
 
 func (*helpCommand) Execute() (string, error) {
-	return success_help, nil
+	return T("help", nil), nil
 }
