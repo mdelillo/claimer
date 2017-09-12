@@ -23,12 +23,19 @@ func main() {
 	channelId := flag.String("channelId", "", "ID of slack channel to listen in")
 	repoUrl := flag.String("repoUrl", "", "URL for git repository of locks")
 	deployKey := flag.String("deployKey", "", "Deploy key for Github")
-	// translationFile := flag.String("translationFile", "", "Yaml file with message translations")
+	translationFile := flag.String("translationFile", "", "Yaml file with message translations")
 	flag.Parse()
 
-	if err := translate.LoadTranslations(translations.DefaultTranslations); err != nil {
-		fmt.Printf("Error loading translations: %s\n", err)
-		os.Exit(1)
+	if *translationFile != "" {
+		if err := translate.LoadTranslationFile(*translationFile); err != nil {
+			fmt.Printf("Error loading translations from %s: %s\n", *translationFile, err)
+			os.Exit(1)
+		}
+	} else {
+		if err := translate.LoadTranslations(translations.DefaultTranslations); err != nil {
+			fmt.Printf("Error loading translations: %s\n", err)
+			os.Exit(1)
+		}
 	}
 
 	logger := logrus.New()

@@ -3,21 +3,22 @@ package integration_test
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"srcd.works/go-git.v4"
-	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
 	"strings"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
+	"golang.org/x/crypto/ssh"
+	"srcd.works/go-git.v4"
+	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
 )
 
 const (
@@ -200,6 +201,35 @@ var _ = Describe("Claimer", func() {
 		postSlackMessage(fmt.Sprintf("<@%s> destroy new-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("new-pool does not exist"))
+	})
+
+	It("responds with a message from a given translation file", func() {
+		botId := getEnv("CLAIMER_TEST_BOT_ID")
+		userApiToken := getEnv("CLAIMER_TEST_USER_API_TOKEN")
+
+		translationFile, err := ioutil.TempFile("", "claimer-integration-tests")
+		Expect(err).NotTo(HaveOccurred())
+		translations := "help: foo"
+		Expect(ioutil.WriteFile(translationFile.Name(), []byte(translations), 0644)).To(Succeed())
+		defer os.Remove(translationFile.Name())
+
+		claimerCommand := exec.Command(
+			claimer,
+			"-apiToken", apiToken,
+			"-channelId", channelId,
+			"-repoUrl", repoUrl,
+			"-deployKey", deployKey,
+			"-translationFile", translationFile.Name(),
+		)
+		session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+
+		By("Displaying the help message")
+		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("foo"))
 	})
 })
 
