@@ -9,3 +9,4 @@ applications:
     CHANNEL_ID:
     REPO_URL:
     DEPLOY_KEY:
+    TRANSLATION_FILE:
