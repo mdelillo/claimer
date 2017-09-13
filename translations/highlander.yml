@@ -1,0 +1,32 @@
+claim:
+  success: "You have claimed {{.pool}}. You have power beyond imagination. Use it well my friend. Don't lose your head."
+  pool_does_not_exist: "What is {{.pool}}?"
+  pool_already_claimed: "{{.pool}} is taken. In the end there can only be one."
+create:
+  success: "{{.pool}} has been created. From the dawn of time we came; moving silently down through the centuries, living many secret lives, struggling to reach the time of the Gathering; when the few who remain will battle to the last. No one has ever known we were among you... until now."
+  pool_already_exists: "{{.pool}} already exists"
+destroy:
+  success: "Destroyed {{.pool}}. It is better to burn out than fade away."
+  pool_does_not_exist: "What is {{.pool}}?"
+owner:
+  success: "Patience, Highlander. {{.pool}} was claimed by {{.owner}} on {{.date}}"
+  pool_does_not_exist: "What is {{.pool}}?"
+  pool_is_not_claimed: "{{.pool}} is not claimed. I have the power!"
+release:
+  success: "Released {{.pool}}. I apologize for calling your wife a bloated warthog, and I bid you good day."
+  pool_does_not_exist: "{{.pool}} does not exist"
+  pool_is_not_claimed: "{{.pool}} is not claimed. I have the power!"
+status:
+  success: "I know... I know everything! I am everything!\n *Claimed by you:* {{.usersClaimed}}\n*Claimed by others:* {{.otherClaimed}}\n*Unclaimed:* {{.unclaimed}}"
+unknown_command: "Unknown command. Try `@connor help` to see usage."
+help: |
+  I am Connor MacLaim of the Clan MacLaim. I was born in 1518 in the village of Glenfinnan on the shores of Loch Shiel. And I am immortal.
+  ```
+    claim <env> [<message>]   Claim an unclaimed environment
+    create <env>              Create a new environment
+    destroy <env>             Destroy an environment
+    owner <env>               Show the user who claimed the environment
+    release <env>             Release a claimed environment
+    status                    Show claimed and unclaimed environments
+    help                      Display this message
+  ```
