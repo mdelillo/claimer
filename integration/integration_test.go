@@ -226,10 +226,15 @@ var _ = Describe("Claimer", func() {
 
 		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
 
-		By("Displaying the help message")
+		By("Displaying the custom help message")
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("foo"))
+
+		By("Displaying the default status message")
+		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(ContainSubstring("Claimed by you:"))
 	})
 })
 

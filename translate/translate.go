@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/imdario/mergo"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,16 +15,21 @@ var translations map[interface{}]interface{}
 type TArgs map[string]string
 
 func LoadTranslationFile(path string) error {
-	translations = nil
-
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %s", path)
 	}
 
-	if err := yaml.Unmarshal(contents, &translations); err != nil {
+	var merged map[interface{}]interface{}
+
+	if err := yaml.Unmarshal(contents, &merged); err != nil {
 		return fmt.Errorf("failed to parse YAML: %s", contents)
 	}
+
+	if err := mergo.Merge(&merged, translations); err != nil {
+		return fmt.Errorf("failed to merge YAML: %s", err.Error())
+	}
+	translations = merged
 
 	return nil
 }

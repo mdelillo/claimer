@@ -43,3 +43,6 @@
 [submodule "vendor/github.com/pkg/errors"]
 	path = vendor/github.com/pkg/errors
 	url = https://github.com/pkg/errors.git
+[submodule "vendor/github.com/imdario/mergo"]
+	path = vendor/github.com/imdario/mergo
+	url = https://github.com/imdario/mergo.git
