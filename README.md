@@ -43,6 +43,11 @@ The provided `manifest.yml` and `Procfile` can be used to push Claimer to [Cloud
 1. Log in to your CF environment
 1. Run `cf push`
 
+## Translations
+You can customize the things that claimer says. 
+1. Create a translations file. Examples can be found [here](https://github.com/mdelillo/claimer/tree/master/translations)
+1. Use the `translationFile` field in the `manifest.yml` to point to your translations file. 
+
 ## Contributing
 
 Be sure all tests pass (`ginkgo -r .`) and code is formatted (`bin/fmt`) before submitting pull requests.
