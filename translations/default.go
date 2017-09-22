@@ -5,6 +5,7 @@ const helpText = "  Available commands:\n" +
 	"    claim <env> [<message>]   Claim an unclaimed environment\n" +
 	"    create <env>              Create a new environment\n" +
 	"    destroy <env>             Destroy an environment\n" +
+	"    notify                    Notify all owners of claimed environments\n" +
 	"    owner <env>               Show the user who claimed the environment\n" +
 	"    release <env>             Release a claimed environment\n" +
 	"    status                    Show claimed and unclaimed environments\n" +
@@ -21,6 +22,8 @@ create:
 destroy:
   success: "Destroyed {{.pool}}"
   pool_does_not_exist: "{{.pool}} does not exist"
+notify:
+  success: "Currently claimed locks, please release if not in use:\n{{.mentions}}"
 owner:
   success: "{{.pool}} was claimed by {{.owner}} on {{.date}}"
   pool_does_not_exist: "{{.pool}} does not exist"

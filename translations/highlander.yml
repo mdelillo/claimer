@@ -8,6 +8,8 @@ create:
 destroy:
   success: "Destroyed {{.pool}}. It is better to burn out than fade away."
   pool_does_not_exist: "What is {{.pool}}?"
+notify:
+  success: "When Shikiko died, I was shattered. I would save you that pain. Please... let Heather go.\n{{.mentions}}"
 owner:
   success: "Patience, Highlander. {{.pool}} was claimed by {{.owner}} on {{.date}}"
   pool_does_not_exist: "What is {{.pool}}?"

@@ -51,8 +51,11 @@ var _ = Describe("Claimer", func() {
 		deployKey = getEnv("CLAIMER_TEST_DEPLOY_KEY")
 	})
 
-	AfterSuite(func() {
+	AfterEach(func() {
 		gexec.KillAndWait()
+	})
+
+	AfterSuite(func() {
 		gexec.CleanupBuildArtifacts()
 		os.RemoveAll(gitDir)
 	})
@@ -61,6 +64,7 @@ var _ = Describe("Claimer", func() {
 		botId := getEnv("CLAIMER_TEST_BOT_ID")
 		userApiToken := getEnv("CLAIMER_TEST_USER_API_TOKEN")
 		username := getEnv("CLAIMER_TEST_USERNAME")
+		userId := getEnv("CLAIMER_TEST_USER_ID")
 		otherChannelId := getEnv("CLAIMER_TEST_OTHER_CHANNEL_ID")
 
 		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
@@ -121,6 +125,12 @@ var _ = Describe("Claimer", func() {
 		parsedDate, err := time.Parse("Mon Jan 2 15:04:05 2006 -0700", date)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(parsedDate).To(BeTemporally("~", time.Now(), 10*time.Second))
+
+		By("Notifying owners of their claimed locks")
+		postSlackMessage(fmt.Sprintf("<@%s> notify", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
+		Expect(latestSlackMessage(channelId, apiToken)).To(ContainSubstring("Currently claimed locks, please release if not in use:\n"))
 
 		By("Trying to claim pool-1 again")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)

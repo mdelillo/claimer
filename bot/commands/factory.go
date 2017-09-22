@@ -69,6 +69,10 @@ func (c *commandFactory) NewCommand(command string, args string, username string
 			command:  command,
 			username: username,
 		}
+	case "notify":
+		return &notifyCommand{
+			locker: c.locker,
+		}
 	default:
 		return &unknownCommand{}
 	}
