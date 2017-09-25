@@ -91,6 +91,7 @@ In order to run them, you'll need to set up or get access to a slack organizatio
    * `CLAIMER_TEST_BOT_ID`: Bot ID for `@claimer`. You can get this by visiting `https://slack.com/api/auth.test?token=<api-token>`
    * `CLAIMER_TEST_USER_API_TOKEN`: API Token for `@claimer-integration`
    * `CLAIMER_TEST_USERNAME`: Username of your test user (e.g. `claimer-integration`)
+   * `CLAIMER_TEST_USER_ID`: User ID of your test user. You can get to this by going to your profile in Slack, clicking the More Actions button, and clicking `Copy member ID`
    * `CLAIMER_TEST_CHANNEL_ID`: Channel ID for your `#test-claimer` channel
    * `CLAIMER_TEST_OTHER_CHANNEL_ID`: Channel ID for your `#other-channel` channel
    * `CLAIMER_TEST_REPO_URL`: URL of your git repository
