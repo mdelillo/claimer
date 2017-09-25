@@ -10,7 +10,6 @@ import (
 
 type statusCommand struct {
 	locker   locker
-	command  string
 	username string
 }
 

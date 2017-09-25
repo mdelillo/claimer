@@ -30,21 +30,18 @@ func (c *commandFactory) NewCommand(command string, args string, username string
 	case "claim":
 		return &claimCommand{
 			locker:   c.locker,
-			command:  command,
 			args:     args,
 			username: username,
 		}
 	case "create":
 		return &createCommand{
 			locker:   c.locker,
-			command:  command,
 			args:     args,
 			username: username,
 		}
 	case "destroy":
 		return &destroyCommand{
 			locker:   c.locker,
-			command:  command,
 			args:     args,
 			username: username,
 		}
@@ -52,21 +49,18 @@ func (c *commandFactory) NewCommand(command string, args string, username string
 		return &helpCommand{}
 	case "owner":
 		return &ownerCommand{
-			locker:  c.locker,
-			command: command,
-			args:    args,
+			locker: c.locker,
+			args:   args,
 		}
 	case "release":
 		return &releaseCommand{
 			locker:   c.locker,
-			command:  command,
 			args:     args,
 			username: username,
 		}
 	case "status":
 		return &statusCommand{
 			locker:   c.locker,
-			command:  command,
 			username: username,
 		}
 	case "notify":

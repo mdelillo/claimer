@@ -9,8 +9,7 @@ import (
 )
 
 type notifyCommand struct {
-	locker  locker
-	command string
+	locker locker
 }
 
 func (n *notifyCommand) Execute() (string, error) {

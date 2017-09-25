@@ -10,9 +10,8 @@ import (
 )
 
 type ownerCommand struct {
-	locker  locker
-	command string
-	args    string
+	locker locker
+	args   string
 }
 
 func (o *ownerCommand) Execute() (string, error) {

@@ -9,7 +9,6 @@ import (
 
 type claimCommand struct {
 	locker   locker
-	command  string
 	args     string
 	username string
 }

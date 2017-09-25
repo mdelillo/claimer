@@ -9,7 +9,6 @@ import (
 
 type releaseCommand struct {
 	locker   locker
-	command  string
 	args     string
 	username string
 }
