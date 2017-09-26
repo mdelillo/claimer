@@ -7,5 +7,7 @@ import (
 type helpCommand struct{}
 
 func (*helpCommand) Execute() (string, error) {
-	return T("help", nil), nil
+	message := T("help.header", nil)
+	message = message + T("help.body", nil)
+	return message, nil
 }

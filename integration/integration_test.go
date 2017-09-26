@@ -219,7 +219,7 @@ var _ = Describe("Claimer", func() {
 
 		translationFile, err := ioutil.TempFile("", "claimer-integration-tests")
 		Expect(err).NotTo(HaveOccurred())
-		translations := "help: foo"
+		translations := "help: {header: foo}"
 		Expect(ioutil.WriteFile(translationFile.Name(), []byte(translations), 0644)).To(Succeed())
 		defer os.Remove(translationFile.Name())
 
@@ -239,7 +239,7 @@ var _ = Describe("Claimer", func() {
 		By("Displaying the custom help message")
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("foo"))
+			Should(HavePrefix("foo"))
 
 		By("Displaying the default status message")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)

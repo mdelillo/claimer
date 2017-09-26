@@ -31,7 +31,7 @@ func (n *notifyCommand) Execute() (string, error) {
 	}
 
 	if len(ownerStatus) == 0 {
-		return "No locks currently claimed.", nil
+		return T("notify.empty", nil), nil
 	}
 
 	mentions := ""
