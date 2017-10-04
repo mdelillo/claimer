@@ -126,8 +126,8 @@ var _ = Describe("Claimer", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(parsedDate).To(BeTemporally("~", time.Now(), 10*time.Second))
 
-		By("Notifying owners of their claimed locks")
-		postSlackMessage(fmt.Sprintf("<@%s> notify", botId), channelId, userApiToken)
+		By("Notifying owners of their claimed locks when characters preceding @claimer exist")
+		postSlackMessage(fmt.Sprintf("Reminder: <@%s> notify", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
 		Expect(latestSlackMessage(channelId, apiToken)).To(ContainSubstring("Currently claimed locks, please release if not in use:\n"))

@@ -5,6 +5,7 @@ import (
 
 	"errors"
 	"fmt"
+
 	"github.com/Sirupsen/logrus"
 	logrustest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/mdelillo/claimer/bot/botfakes"
@@ -43,7 +44,7 @@ var _ = Describe("Bot", func() {
 				message := "some-message"
 
 				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
-					messageHandler(fmt.Sprintf("@some-bot %s %s", cmd, args), channel, username)
+					messageHandler(fmt.Sprintf("<@some-bot> %s %s", cmd, args), channel, username)
 					return nil
 				}
 				commandFactory.NewCommandReturns(command)
@@ -71,7 +72,7 @@ var _ = Describe("Bot", func() {
 				message := "some-message"
 
 				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
-					messageHandler(fmt.Sprintf("@some-bot %s", cmd), channel, username)
+					messageHandler(fmt.Sprintf("<@some-bot> %s", cmd), channel, username)
 					return nil
 				}
 				commandFactory.NewCommandReturns(command)
@@ -91,6 +92,35 @@ var _ = Describe("Bot", func() {
 			})
 		})
 
+		Context("when text precedes call to claimer", func() {
+			It("executes a command with arguments and posts the response in slack", func() {
+				cmd := "some-command"
+				args := "some-arg some-other-arg"
+				channel := "some-channel"
+				username := "some-username"
+				message := "some-message"
+
+				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
+					messageHandler(fmt.Sprintf("something <@some-bot> %s %s", cmd, args), channel, username)
+					return nil
+				}
+				commandFactory.NewCommandReturns(command)
+				command.ExecuteReturns(message, nil)
+
+				Expect(New(commandFactory, slackClient, logger).Run()).To(Succeed())
+
+				actualCmd, actualArgs, actualUsername := commandFactory.NewCommandArgsForCall(0)
+				Expect(actualCmd).To(Equal(cmd))
+				Expect(actualArgs).To(Equal(args))
+				Expect(actualUsername).To(Equal(username))
+
+				actualChannel, actualMessage := slackClient.PostMessageArgsForCall(0)
+				Expect(slackClient.PostMessageCallCount()).To(Equal(1))
+				Expect(actualChannel).To(Equal(channel))
+				Expect(actualMessage).To(Equal(message))
+			})
+		})
+
 		Context("when no command is specified", func() {
 			It("uses an empty value for the command", func() {
 				channel := "some-channel"
@@ -98,7 +128,7 @@ var _ = Describe("Bot", func() {
 				message := "some-message"
 
 				slackClient.ListenStub = func(messageHandler func(_, _, _ string)) error {
-					messageHandler("@some-bot", channel, username)
+					messageHandler("<@some-bot>", channel, username)
 					return nil
 				}
 				commandFactory.NewCommandReturns(command)
@@ -127,7 +157,7 @@ var _ = Describe("Bot", func() {
 
 		Context("when the command returns an error", func() {
 			It("logs an error", func() {
-				text := "@some-bot some-command"
+				text := "<@some-bot> some-command"
 				channel := "some-channel"
 				username := "some-username"
 
@@ -154,7 +184,7 @@ var _ = Describe("Bot", func() {
 
 		Context("when posting to slack fails", func() {
 			It("logs an error", func() {
-				text := "@some-bot some-command"
+				text := "<@some-bot> some-command"
 				channel := "some-channel"
 				username := "some-username"
 

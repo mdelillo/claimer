@@ -2,11 +2,12 @@ package slack
 
 import (
 	"encoding/json"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/slack/requests"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
-	"strings"
 )
 
 type client struct {
@@ -63,8 +64,6 @@ func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(st
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (c *client) handleEvent(data []byte, botId string, messageHandler func(string, string, string)) error {
@@ -101,7 +100,7 @@ func inChannel(message *message, channelId string) bool {
 }
 
 func mentionsBot(message *message, botId string) bool {
-	return strings.HasPrefix(message.Text, "<@"+botId+">")
+	return strings.Contains(message.Text, "<@"+botId)
 }
 
 func (c *client) PostMessage(channel, message string) error {

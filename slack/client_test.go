@@ -5,13 +5,14 @@ import (
 
 	"errors"
 	"fmt"
+	"net/http/httptest"
+
 	"github.com/Sirupsen/logrus"
 	logrustest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/mdelillo/claimer/slack/requests/requestsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/websocket"
-	"net/http/httptest"
 )
 
 var _ = Describe("Client", func() {
@@ -75,8 +76,22 @@ var _ = Describe("Client", func() {
 				ws.Write([]byte(fmt.Sprintf(
 					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
 					"message",
+					fmt.Sprintf("something <@%s> some-other-text", botId),
+					channel,
+					userId,
+				)))
+				ws.Write([]byte(fmt.Sprintf(
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
+					"message",
 					fmt.Sprintf("<@%s> some-text-in-other-channel", botId),
 					"some-other-channel",
+					userId,
+				)))
+				ws.Write([]byte(fmt.Sprintf(
+					`{"type":"%s", "text":"%s", "channel":"%s", "user":"%s"}`,
+					"message",
+					fmt.Sprintf("<@%s|otherstuff> some-other-text", botId),
+					channel,
 					userId,
 				)))
 			}))
@@ -92,19 +107,21 @@ var _ = Describe("Client", func() {
 			messageCount := 0
 			messageHandler := func(actualText, actualChannel, actualUsername string) {
 				messageCount++
-				Expect(actualText).To(HavePrefix(fmt.Sprintf("<@%s>", botId)))
+				Expect(actualText).To(ContainSubstring(fmt.Sprintf("<@%s", botId)))
 				Expect(actualChannel).To(Equal(channel))
 				Expect(actualUsername).To(Equal(username))
 			}
 
 			NewClient(requestFactory, channel, logger).Listen(messageHandler)
-			Eventually(func() int { return messageCount }).Should(Equal(2))
-			Eventually(func() int { return messageCount }).ShouldNot(Equal(3))
+			Eventually(func() int { return messageCount }).Should(Equal(4))
+			Consistently(func() int { return messageCount }).ShouldNot(Equal(5))
 			Expect(requestFactory.NewStartRtmRequestCallCount()).To(Equal(1))
-			Expect(requestFactory.NewGetUsernameRequestCallCount()).To(Equal(2))
+			Expect(requestFactory.NewGetUsernameRequestCallCount()).To(Equal(4))
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(0)).To(Equal(userId))
 			Expect(requestFactory.NewGetUsernameRequestArgsForCall(1)).To(Equal(userId))
-			Expect(getUsernameRequest.ExecuteCallCount()).To(Equal(2))
+			Expect(requestFactory.NewGetUsernameRequestArgsForCall(2)).To(Equal(userId))
+			Expect(requestFactory.NewGetUsernameRequestArgsForCall(3)).To(Equal(userId))
+			Expect(getUsernameRequest.ExecuteCallCount()).To(Equal(4))
 			Expect(len(logHook.Entries)).To(Equal(1))
 			Expect(logHook.LastEntry().Level).To(Equal(logrus.InfoLevel))
 			Expect(logHook.LastEntry().Message).To(Equal("Listening for messages"))

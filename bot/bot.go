@@ -1,9 +1,10 @@
 package bot
 
 import (
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/bot/commands"
-	"strings"
 )
 
 //go:generate counterfeiter . commandFactory
@@ -34,7 +35,8 @@ func New(commandFactory commandFactory, slackClient slackClient, logger *logrus.
 
 func (c *bot) Run() error {
 	return c.slackClient.Listen(func(text, channel, username string) {
-		splitText := strings.SplitN(text, " ", 3)
+		noPrefix := "<@" + strings.SplitN(text, "<@", 2)[1]
+		splitText := strings.SplitN(noPrefix, " ", 3)
 		var cmd string
 		if len(splitText) > 1 {
 			cmd = splitText[1]
