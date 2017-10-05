@@ -2,6 +2,7 @@ claim:
   success: "You have claimed {{.pool}}. You have power beyond imagination. Use it well my friend. Don't lose your head."
   pool_does_not_exist: "What is {{.pool}}?"
   pool_is_already_claimed: "{{.pool}} is taken. In the end there can only be one."
+  no_pool: "Which pool? Another time, MacLaim!"
 create:
   success: "{{.pool}} has been created. From the dawn of time we came; moving silently down through the centuries, living many secret lives, struggling to reach the time of the Gathering; when the few who remain will battle to the last. No one has ever known we were among you... until now."
   pool_already_exists: "{{.pool}} already exists [as Tony reads a newspaper headlined: Headhunter-3, Cops-Zero] Hey Moran! Have you read what it says in here?"

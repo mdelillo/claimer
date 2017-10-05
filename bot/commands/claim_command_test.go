@@ -4,6 +4,7 @@ import (
 	. "github.com/mdelillo/claimer/bot/commands"
 
 	"errors"
+
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
 	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
@@ -68,12 +69,12 @@ var _ = Describe("ClaimCommand", func() {
 		})
 
 		Context("when no pool is specified", func() {
-			It("returns an error", func() {
+			It("returns a slack response", func() {
 				command := NewFactory(locker).NewCommand("claim", "", "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("no pool specified"))
-				Expect(slackResponse).To(BeEmpty())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal("must specify pool to claim"))
 			})
 		})
 

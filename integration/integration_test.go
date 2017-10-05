@@ -177,6 +177,11 @@ var _ = Describe("Claimer", func() {
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
 			Should(Equal("non-existent-pool does not exist"))
 
+		By("Trying to claim without a pool name")
+		postSlackMessage(fmt.Sprintf("<@%s> claim", botId), channelId, userApiToken)
+		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			Should(Equal("must specify pool to claim"))
+
 		By("Trying to release non-existent-pool")
 		postSlackMessage(fmt.Sprintf("<@%s> release non-existent-pool", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").

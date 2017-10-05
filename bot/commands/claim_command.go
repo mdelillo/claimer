@@ -16,7 +16,7 @@ type claimCommand struct {
 func (c *claimCommand) Execute() (string, error) {
 	args := strings.SplitN(c.args, " ", 2)
 	if len(c.args) < 1 {
-		return "", errors.New("no pool specified")
+		return T("claim.no_pool", nil), nil
 	}
 	pool := args[0]
 

@@ -15,6 +15,7 @@ claim:
   success: "Claimed {{.pool}}"
   pool_is_already_claimed: "{{.pool}} is already claimed"
   pool_does_not_exist: "{{.pool}} does not exist"
+  no_pool: "must specify pool to claim"
 create:
   success: "Created {{.pool}}"
   pool_already_exists: "{{.pool}} already exists"
