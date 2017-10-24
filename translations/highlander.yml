@@ -24,4 +24,4 @@ status:
   success: "I know... I know everything! I am everything!\n *Claimed by you:* {{.usersClaimed}}\n*Claimed by others:* {{.otherClaimed}}\n*Unclaimed:* {{.unclaimed}}"
 unknown_command: "Unknown command. Try `@connor help` to see usage."
 help:
-  header: "I am Connor MacLaim of the Clan MacLaim. I was born in 1518 in the village of Glenfinnan on the shores of Loch Shiel. And I am immortal."
+  header: "I am Connor MacClaim of the Clan MacClaim. I was born in 1518 in the village of Glenfinnan on the shores of Loch Shiel. And I am immortal."
