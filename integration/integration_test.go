@@ -123,9 +123,9 @@ var _ = Describe("Claimer", func() {
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).To(BeAnExistingFile())
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).NotTo(BeAnExistingFile())
 
-		response := runCommand("status")
-		Expect(response).To(ContainSubstring("*Claimed by you:* pool-1\n"))
-		Expect(response).NotTo(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
+		status := runCommand("status")
+		Expect(status).To(ContainSubstring("*Claimed by you:* pool-1\n"))
+		Expect(status).NotTo(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
 
 		Expect(runCommand("claim pool-1")).To(Equal("pool-1 is already claimed"))
 
@@ -134,9 +134,9 @@ var _ = Describe("Claimer", func() {
 		Expect(filepath.Join(gitDir, "pool-1", "unclaimed", "lock-a")).To(BeAnExistingFile())
 		Expect(filepath.Join(gitDir, "pool-1", "claimed", "lock-a")).NotTo(BeAnExistingFile())
 
-		response = runCommand("status")
-		Expect(response).To(ContainSubstring("*Claimed by you:* \n"))
-		Expect(response).To(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
+		status = runCommand("status")
+		Expect(status).To(ContainSubstring("*Claimed by you:* \n"))
+		Expect(status).To(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
 
 		Expect(runCommand("release pool-1")).To(Equal("pool-1 is not claimed"))
 
@@ -158,11 +158,11 @@ var _ = Describe("Claimer", func() {
 		claimTime := time.Now()
 		Expect(runCommand("claim pool-1")).To(Equal("Claimed pool-1"))
 
-		response := runCommand("owner pool-1")
-		ownerMessage := fmt.Sprintf("pool-1 was claimed by %s on ", username)
-		Expect(response).To(ContainSubstring(ownerMessage))
+		owner := runCommand("owner pool-1")
+		ownerPrefix := fmt.Sprintf("pool-1 was claimed by %s on ", username)
+		Expect(owner).To(HavePrefix(ownerPrefix))
 
-		date := strings.TrimPrefix(response, ownerMessage)
+		date := strings.TrimPrefix(owner, ownerPrefix)
 		parsedDate, err := time.Parse("Mon Jan 2 15:04:05 2006 -0700", date)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(parsedDate).To(BeTemporally("~", claimTime, 10*time.Second))
@@ -180,9 +180,9 @@ var _ = Describe("Claimer", func() {
 
 		Expect(runCommand("claim pool-1")).To(Equal("Claimed pool-1"))
 
-		response := runCommand("notify")
-		Expect(response).To(ContainSubstring("Currently claimed locks, please release if not in use:\n"))
-		Expect(response).To(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
+		notification := runCommand("notify")
+		Expect(notification).To(ContainSubstring("Currently claimed locks, please release if not in use:\n"))
+		Expect(notification).To(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
 	})
 
 	It("creates and destroys locks", func() {
