@@ -5,6 +5,7 @@ import (
 
 	"errors"
 	"fmt"
+
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
 	clocker "github.com/mdelillo/claimer/locker"
 	. "github.com/onsi/ginkgo"
@@ -94,12 +95,12 @@ var _ = Describe("OwnerCommand", func() {
 		})
 
 		Context("when no pool is specified", func() {
-			It("returns an error", func() {
+			It("returns a slack response", func() {
 				command := NewFactory(locker).NewCommand("owner", "", "")
 
 				slackResponse, err := command.Execute()
-				Expect(err).To(MatchError("no pool specified"))
-				Expect(slackResponse).To(BeEmpty())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(slackResponse).To(Equal("must specify pool"))
 			})
 		})
 

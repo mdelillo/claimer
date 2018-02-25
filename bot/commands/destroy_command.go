@@ -16,7 +16,7 @@ type destroyCommand struct {
 func (c *destroyCommand) Execute() (string, error) {
 	args := strings.Fields(c.args)
 	if len(args) < 1 {
-		return "", errors.New("no pool specified")
+		return T("destroy.no_pool", nil), nil
 	}
 	pool := args[0]
 

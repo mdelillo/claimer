@@ -140,6 +140,8 @@ var _ = Describe("Claimer", func() {
 
 		Expect(runCommand("release non-existent-pool")).To(Equal("non-existent-pool does not exist"))
 
+		Expect(runCommand("release")).To(Equal("must specify pool to release"))
+
 		Expect(runCommand("unknown-command")).To(Equal("Unknown command. Try `@claimer help` to see usage."))
 	})
 
@@ -165,6 +167,8 @@ var _ = Describe("Claimer", func() {
 		Expect(runCommand("claim pool-1 some message")).To(Equal("Claimed pool-1"))
 
 		Expect(runCommand("owner pool-1")).To(HaveSuffix(" (some message)"))
+
+		Expect(runCommand("owner")).To(Equal("must specify pool"))
 	})
 
 	It("notifies users who have claimed locks", func() {
@@ -197,6 +201,10 @@ var _ = Describe("Claimer", func() {
 		Expect(runCommand("destroy new-pool")).To(Equal("new-pool does not exist"))
 
 		Expect(runCommand("status")).NotTo(MatchRegexp(`\*Unclaimed:\*.*new-pool`))
+
+		Expect(runCommand("create")).To(Equal("must specify name of pool to create"))
+
+		Expect(runCommand("destroy")).To(Equal("must specify pool to destroy"))
 	})
 
 	It("does not respond in other channels", func() {

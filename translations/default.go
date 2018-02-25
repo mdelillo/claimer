@@ -19,9 +19,11 @@ claim:
 create:
   success: "Created {{.pool}}"
   pool_already_exists: "{{.pool}} already exists"
+  no_pool: "must specify name of pool to create"
 destroy:
   success: "Destroyed {{.pool}}"
   pool_does_not_exist: "{{.pool}} does not exist"
+  no_pool: "must specify pool to destroy"
 notify:
   success: "Currently claimed locks, please release if not in use:\n{{.mentions}}"
   empty: "No locks currently claimed."
@@ -29,10 +31,12 @@ owner:
   success: "{{.pool}} was claimed by {{.owner}} on {{.date}}"
   pool_does_not_exist: "{{.pool}} does not exist"
   pool_is_not_claimed: "{{.pool}} is not claimed"
+  no_pool: "must specify pool"
 release:
   success: "Released {{.pool}}"
   pool_does_not_exist: "{{.pool}} does not exist"
   pool_is_not_claimed: "{{.pool}} is not claimed"
+  no_pool: "must specify pool to release"
 status:
   success: "*Claimed by you:* {{.usersClaimed}}\n*Claimed by others:* {{.otherClaimed}}\n*Unclaimed:* {{.unclaimed}}"
 ` +

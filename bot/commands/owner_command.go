@@ -17,7 +17,7 @@ type ownerCommand struct {
 func (o *ownerCommand) Execute() (string, error) {
 	args := strings.Fields(o.args)
 	if len(args) < 1 {
-		return "", errors.New("no pool specified")
+		return T("owner.no_pool", nil), nil
 	}
 	pool := args[0]
 

@@ -16,7 +16,7 @@ type createCommand struct {
 func (c *createCommand) Execute() (string, error) {
 	args := strings.Fields(c.args)
 	if len(c.args) < 1 {
-		return "", errors.New("no pool specified")
+		return T("create.no_pool", nil), nil
 	}
 	pool := args[0]
 

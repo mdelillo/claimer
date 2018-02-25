@@ -16,7 +16,7 @@ type releaseCommand struct {
 func (r *releaseCommand) Execute() (string, error) {
 	args := strings.Fields(r.args)
 	if len(r.args) < 1 {
-		return "", errors.New("no pool specified")
+		return T("release.no_pool", nil), nil
 	}
 	pool := args[0]
 
