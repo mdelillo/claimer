@@ -5,6 +5,8 @@ applications:
   no-route: true
   env:
     GOPACKAGENAME: github.com/mdelillo/claimer
+    GOVERSION: go1.10
+    SSH_KNOWN_HOSTS: ./known_hosts
     API_TOKEN:
     CHANNEL_ID:
     REPO_URL:
