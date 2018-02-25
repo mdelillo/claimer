@@ -115,7 +115,8 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed by you:* pool-1\n*Claimed by others:* pool-3\n*Unclaimed:* "))
+			Should(ContainSubstring("*Claimed by you:* pool-1\n"))
+		Expect(latestSlackMessage(channelId, apiToken)).NotTo(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
 
 		By("Checking the owner of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
@@ -129,8 +130,8 @@ var _ = Describe("Claimer", func() {
 		By("Notifying owners of their claimed locks when characters preceding @claimer exist")
 		postSlackMessage(fmt.Sprintf("Reminder: <@%s> notify", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
-		Expect(latestSlackMessage(channelId, apiToken)).To(ContainSubstring("Currently claimed locks, please release if not in use:\n"))
+			Should(ContainSubstring("Currently claimed locks, please release if not in use:\n"))
+		Expect(latestSlackMessage(channelId, apiToken)).To(ContainSubstring(fmt.Sprintf("<@%s>: pool-1", userId)))
 
 		By("Trying to claim pool-1 again")
 		postSlackMessage(fmt.Sprintf("<@%s> claim pool-1", botId), channelId, userApiToken)
@@ -148,7 +149,8 @@ var _ = Describe("Claimer", func() {
 		By("Checking the status")
 		postSlackMessage(fmt.Sprintf("<@%s> status", botId), channelId, userApiToken)
 		Eventually(func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
-			Should(Equal("*Claimed by you:* \n*Claimed by others:* pool-3\n*Unclaimed:* pool-1"))
+			Should(ContainSubstring("*Claimed by you:* \n"))
+		Expect(latestSlackMessage(channelId, apiToken)).To(MatchRegexp(`\*Unclaimed:\*.*pool-1`))
 
 		By("Checking the status of pool-1")
 		postSlackMessage(fmt.Sprintf("<@%s> owner pool-1", botId), channelId, userApiToken)
