@@ -38,7 +38,7 @@ var _ = Describe("Claimer", func() {
 		userId         string
 		otherChannelId string
 		runCommand     func(string) string
-		startClaimer   func(string) *gexec.Session
+		startClaimer   func(string)
 		gitDir         string
 	)
 
@@ -63,7 +63,7 @@ var _ = Describe("Claimer", func() {
 				ShouldNot(Equal(message), fmt.Sprintf(`Did not get response from command "%s"`, command))
 			return latestSlackMessage(channelId, apiToken)
 		}
-		startClaimer = func(translationFile string) *gexec.Session {
+		startClaimer = func(translationFile string) {
 			args := []string{
 				"-apiToken", apiToken,
 				"-channelId", channelId,
@@ -73,10 +73,10 @@ var _ = Describe("Claimer", func() {
 			if translationFile != "" {
 				args = append(args, "-translationFile", translationFile)
 			}
-			claimerCommand := exec.Command(claimer, args...)
-			session, err := gexec.Start(claimerCommand, GinkgoWriter, GinkgoWriter)
+			cmd := exec.Command(claimer, args...)
+			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-			return session
+			Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
 		}
 	})
 
@@ -111,8 +111,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("claims, releases, and shows status of locks", func() {
-		session := startClaimer("")
-		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+		startClaimer("")
 
 		Expect(runCommand("help")).To(ContainSubstring("Available commands:"))
 
@@ -150,8 +149,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("shows the owner of a lock", func() {
-		session := startClaimer("")
-		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+		startClaimer("")
 
 		Expect(runCommand("owner pool-1")).To(Equal("pool-1 is not claimed"))
 
@@ -175,8 +173,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("notifies users who have claimed locks", func() {
-		session := startClaimer("")
-		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+		startClaimer("")
 
 		Expect(runCommand("claim pool-1")).To(Equal("Claimed pool-1"))
 
@@ -186,8 +183,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("creates and destroys locks", func() {
-		session := startClaimer("")
-		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+		startClaimer("")
 
 		Expect(runCommand("create new-pool")).To(Equal("Created new-pool"))
 
@@ -209,8 +205,7 @@ var _ = Describe("Claimer", func() {
 	})
 
 	It("does not respond in other channels", func() {
-		session := startClaimer("")
-		Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+		startClaimer("")
 
 		postSlackMessage(fmt.Sprintf("<@%s> help", botId), otherChannelId, userApiToken)
 
@@ -235,8 +230,7 @@ var _ = Describe("Claimer", func() {
 			translations := "help: {header: foo}"
 			Expect(ioutil.WriteFile(translationFilePath, []byte(translations), 0644)).To(Succeed())
 
-			session := startClaimer(translationFilePath)
-			Eventually(session, "20s").Should(gbytes.Say("Listening for messages"))
+			startClaimer(translationFilePath)
 
 			Expect(runCommand("help")).To(HavePrefix("foo"))
 
