@@ -1,17 +1,18 @@
 package git
 
 import (
+	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/plumbing/transport"
-	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
 	"strings"
+
+	"github.com/pkg/errors"
+	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
 type repo struct {
@@ -31,12 +32,14 @@ func NewRepo(url, deployKey string, dir string) *repo {
 func (r *repo) CloneOrPull() error {
 	var auth transport.AuthMethod
 	if r.deployKey != "" {
-		signer, err := ssh.ParsePrivateKey([]byte(r.deployKey))
+		if block, _ := pem.Decode([]byte(r.deployKey)); block == nil {
+			return errors.New("failed to parse public key: invalid PEM")
+		}
+		var err error
+		auth, err = ssh.NewPublicKeys("git", []byte(r.deployKey), "")
 		if err != nil {
 			return errors.Wrap(err, "failed to parse public key")
 		}
-
-		auth = &gitssh.PublicKeys{User: "git", Signer: signer}
 	}
 
 	if r.cloned() {

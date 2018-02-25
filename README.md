@@ -25,7 +25,7 @@ Claimer is a slack bot for managing locks in a [concourse resource pool](https:/
 ```bash
 mkdir -p $GOPATH/src/github.com/mdelillo
 cd $GOPATH/src/github.com/mdelillo
-git clone --recursive https://github.com/mdelillo/claimer
+git clone https://github.com/mdelillo/claimer
 cd claimer
 go build .
 ./claimer \

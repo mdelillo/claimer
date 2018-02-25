@@ -2,16 +2,17 @@ package git_test
 
 import (
 	. "github.com/mdelillo/claimer/git"
+	git "gopkg.in/src-d/go-git.v4"
 
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"srcd.works/go-git.v4"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Repo", func() {

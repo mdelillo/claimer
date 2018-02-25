@@ -16,9 +16,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"golang.org/x/crypto/ssh"
-	"srcd.works/go-git.v4"
-	gitssh "srcd.works/go-git.v4/plumbing/transport/ssh"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
 const (
@@ -85,15 +84,11 @@ var _ = Describe("Claimer", func() {
 		gitDir, err = ioutil.TempDir("", "claimer-integration-tests")
 		Expect(err).NotTo(HaveOccurred())
 
-		signer, err := ssh.ParsePrivateKey([]byte(deployKey))
+		key, err := ssh.NewPublicKeys("git", []byte(deployKey), "")
 		Expect(err).NotTo(HaveOccurred())
-
 		_, err = git.PlainClone(gitDir, false, &git.CloneOptions{
-			URL: repoUrl,
-			Auth: &gitssh.PublicKeys{
-				User:   "git",
-				Signer: signer,
-			},
+			URL:  repoUrl,
+			Auth: key,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
