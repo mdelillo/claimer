@@ -145,6 +145,45 @@ var _ = Describe("Claimer", func() {
 		Expect(runCommand("unknown-command")).To(Equal("Unknown command. Try `@claimer help` to see usage."))
 	})
 
+	FIt("claims, releases, and shows status of locks in pools with multiple locks", func() {
+		startClaimer("")
+
+		Expect(runCommand("status")).To(MatchRegexp(`\*Unclaimed:\*.*pool-2/lock-a, pool-2/lock-b, pool-2/lock-c`))
+
+		Expect(runCommand("claim pool-2/lock-a")).To(Equal("Claimed pool-2/lock-a"))
+		Expect(runCommand("claim pool-2/lock-b")).To(Equal("Claimed pool-2/lock-b"))
+		Expect(runCommand("claim pool-2/lock-c")).To(Equal("Claimed pool-2/lock-c"))
+
+		status := runCommand("status")
+		Expect(status).To(ContainSubstring("*Claimed by you:* pool-2/lock-a, pool-2/lock-b, pool-2/lock-c\n"))
+		Expect(status).NotTo(MatchRegexp(`\*Unclaimed:\*.*pool-2`))
+
+		Expect(runCommand("release pool-2")).To(Equal("Must specify which lock in pool-2 to release"))
+		Expect(runCommand("release pool-2/lock-a")).To(Equal("Released pool-2/lock-a"))
+		Expect(runCommand("release pool-2/lock-b")).To(Equal("Released pool-2/lock-b"))
+		Expect(runCommand("release pool-2/lock-c")).To(Equal("Released pool-2/lock-c"))
+
+		Expect(runCommand("status")).To(MatchRegexp(`\*Unclaimed:\*.*pool-2/lock-a, pool-2/lock-b, pool-2/lock-c`))
+
+		claimedRandomLock := false
+		var firstLock string
+		for i := 0; i < 20; i++ {
+			claimResponse := runCommand("claim pool-2")
+			Expect(claimResponse).To(HavePrefix("Claimed pool-2/"))
+			lock := strings.TrimPrefix(claimResponse, "Claimed pool-2/")
+			runCommand(fmt.Sprintf("release pool-2/%s", lock))
+			if firstLock == "" {
+				firstLock = lock
+			} else {
+				if lock != firstLock {
+					claimedRandomLock = true
+					break
+				}
+			}
+		}
+		Expect(claimedRandomLock).To(BeTrue())
+	})
+
 	It("shows the owner of a lock", func() {
 		startClaimer("")
 

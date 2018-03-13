@@ -5,10 +5,11 @@ import (
 
 	"errors"
 	"fmt"
+	"path/filepath"
+
 	"github.com/mdelillo/claimer/locker/lockerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"path/filepath"
 )
 
 var _ = Describe("Locker", func() {
@@ -23,33 +24,67 @@ var _ = Describe("Locker", func() {
 	})
 
 	Describe("ClaimLock", func() {
-		It("claims the lock file in the git repo", func() {
-			pool := "some-pool"
-			gitDir := "some-dir"
-			lock := "some-lock"
-			user := "some-user"
-			message := "some-message"
+		Context("when the lock is just a pool", func() {
+			It("claims the lock file in the git repo", func() {
+				pool := "some-pool"
+				gitDir := "some-dir"
+				lock := "some-lock"
+				user := "some-user"
+				message := "some-message"
 
-			gitRepo.DirReturns(gitDir)
-			fs.LsReturns([]string{lock}, nil)
+				gitRepo.DirReturns(gitDir)
+				fs.LsReturns([]string{lock}, nil)
 
-			locker := NewLocker(fs, gitRepo)
-			Expect(locker.ClaimLock(pool, user, message)).To(Succeed())
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.ClaimLock(pool, user, message)).To(Succeed())
 
-			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+				Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
 
-			Expect(fs.LsCallCount()).To(Equal(1))
-			Expect(fs.LsArgsForCall(0)).To(Equal(filepath.Join(gitDir, pool, "unclaimed")))
+				Expect(fs.LsCallCount()).To(Equal(1))
+				Expect(fs.LsArgsForCall(0)).To(Equal(filepath.Join(gitDir, pool, "unclaimed")))
 
-			Expect(fs.MvCallCount()).To(Equal(1))
-			oldPath, newPath := fs.MvArgsForCall(0)
-			Expect(oldPath).To(Equal(filepath.Join(gitDir, pool, "unclaimed", lock)))
-			Expect(newPath).To(Equal(filepath.Join(gitDir, pool, "claimed", lock)))
+				Expect(fs.MvCallCount()).To(Equal(1))
+				oldPath, newPath := fs.MvArgsForCall(0)
+				Expect(oldPath).To(Equal(filepath.Join(gitDir, pool, "unclaimed", lock)))
+				Expect(newPath).To(Equal(filepath.Join(gitDir, pool, "claimed", lock)))
 
-			actualMessage, actualUser := gitRepo.CommitAndPushArgsForCall(0)
-			Expect(gitRepo.CommitAndPushCallCount()).To(Equal(1))
-			Expect(actualMessage).To(Equal(fmt.Sprintf("Claimer claiming %s\n\n%s", pool, message)))
-			Expect(actualUser).To(Equal(user))
+				actualMessage, actualUser := gitRepo.CommitAndPushArgsForCall(0)
+				Expect(gitRepo.CommitAndPushCallCount()).To(Equal(1))
+				Expect(actualMessage).To(Equal(fmt.Sprintf("Claimer claiming %s\n\n%s", pool, message)))
+				Expect(actualUser).To(Equal(user))
+			})
+		})
+
+		FContext("when the lock is a pool/lock", func() {
+			It("claims the lock file in the git repo", func() {
+				pool := "some-pool"
+				lock := "some-lock-1"
+				otherLock := "some-lock-2"
+				gitDir := "some-dir"
+				user := "some-user"
+				message := "some-message"
+
+				gitRepo.DirReturns(gitDir)
+				fs.LsReturns([]string{lock, otherLock}, nil)
+
+				locker := NewLocker(fs, gitRepo)
+				Expect(locker.ClaimLock(pool+"/"+lock, user, message)).To(Succeed())
+
+				Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
+
+				Expect(fs.LsCallCount()).To(Equal(1))
+				Expect(fs.LsArgsForCall(0)).To(Equal(filepath.Join(gitDir, pool, "unclaimed")))
+
+				Expect(fs.MvCallCount()).To(Equal(1))
+				oldPath, newPath := fs.MvArgsForCall(0)
+				Expect(oldPath).To(Equal(filepath.Join(gitDir, pool, "unclaimed", lock)))
+				Expect(newPath).To(Equal(filepath.Join(gitDir, pool, "claimed", lock)))
+
+				actualMessage, actualUser := gitRepo.CommitAndPushArgsForCall(0)
+				Expect(gitRepo.CommitAndPushCallCount()).To(Equal(1))
+				Expect(actualMessage).To(Equal(fmt.Sprintf("Claimer claiming %s/%s\n\n%s", pool, lock, message)))
+				Expect(actualUser).To(Equal(user))
+			})
 		})
 
 		Context("when the message is empty", func() {
@@ -354,7 +389,7 @@ var _ = Describe("Locker", func() {
 	})
 
 	Describe("Status", func() {
-		It("returns a list of pools with exactly one lock", func() {
+		It("returns a list of locks", func() {
 			author := "some-author"
 			date := "some-date"
 			message := "some-message"
@@ -364,7 +399,7 @@ var _ = Describe("Locker", func() {
 
 			fs.LsDirsStub = func(dir string) ([]string, error) {
 				if dir == gitDir {
-					return []string{"pool-1", "pool-2", "empty-pool", "full-pool"}, nil
+					return []string{"pool-1", "pool-2", "pool-with-no-locks", "pool-with-many-locks"}, nil
 				} else {
 					return []string{}, nil
 				}
@@ -374,10 +409,10 @@ var _ = Describe("Locker", func() {
 					return []string{"lock"}, nil
 				} else if dir == filepath.Join(gitDir, "pool-2", "unclaimed") {
 					return []string{"lock"}, nil
-				} else if dir == filepath.Join(gitDir, "full-pool", "claimed") {
-					return []string{"lock"}, nil
-				} else if dir == filepath.Join(gitDir, "full-pool", "unclaimed") {
-					return []string{"lock"}, nil
+				} else if dir == filepath.Join(gitDir, "pool-with-many-locks", "claimed") {
+					return []string{"lock-1"}, nil
+				} else if dir == filepath.Join(gitDir, "pool-with-many-locks", "unclaimed") {
+					return []string{"lock-2", "lock-3"}, nil
 				} else {
 					return []string{}, nil
 				}
@@ -391,10 +426,13 @@ var _ = Describe("Locker", func() {
 			Expect(locks).To(ConsistOf(
 				Lock{Name: "pool-1", Claimed: true, Owner: author, Date: date, Message: message},
 				Lock{Name: "pool-2", Claimed: false},
+				Lock{Name: "pool-with-many-locks/lock-1", Claimed: true, Owner: author, Date: date, Message: message},
+				Lock{Name: "pool-with-many-locks/lock-2", Claimed: false},
+				Lock{Name: "pool-with-many-locks/lock-3", Claimed: false},
 			))
 
 			Expect(gitRepo.CloneOrPullCallCount()).To(Equal(1))
-			Expect(gitRepo.LatestCommitCallCount()).To(Equal(1))
+			Expect(gitRepo.LatestCommitCallCount()).To(Equal(2))
 		})
 
 		Context("when cloning the repo fails", func() {

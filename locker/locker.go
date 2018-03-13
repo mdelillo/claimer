@@ -1,8 +1,11 @@
 package locker
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 	"path/filepath"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter . gitRepo
@@ -52,14 +55,19 @@ func (l *locker) ClaimLock(pool, user, message string) error {
 		return errors.Wrap(err, "failed to list unclaimed locks")
 	}
 
-	if len(locks) == 0 {
-		return errors.Errorf("no unclaimed locks for pool %s", pool)
-	} else if len(locks) > 1 {
-		return errors.Errorf("too many unclaimed locks for pool %s", pool)
+	var unclaimedLock, claimedLock string
+	if strings.Contains(pool, "/") {
+
+	} else {
+		if len(locks) == 0 {
+			return errors.Errorf("no unclaimed locks for pool %s", pool)
+		} else if len(locks) > 1 {
+			return errors.Errorf("too many unclaimed locks for pool %s", pool)
+		}
+		unclaimedLock = filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", locks[0])
+		claimedLock = filepath.Join(l.gitRepo.Dir(), pool, "claimed", locks[0])
 	}
 
-	unclaimedLock := filepath.Join(l.gitRepo.Dir(), pool, "unclaimed", locks[0])
-	claimedLock := filepath.Join(l.gitRepo.Dir(), pool, "claimed", locks[0])
 	if err := l.fs.Mv(unclaimedLock, claimedLock); err != nil {
 		return errors.Wrap(err, "failed to move file")
 	}
@@ -169,19 +177,20 @@ func (l *locker) Status() ([]Lock, error) {
 			return nil, errors.Wrap(err, "failed to list unclaimed locks")
 		}
 
-		if len(claimedLocks) == 0 && len(unclaimedLocks) == 1 {
+		multipleLocks := len(claimedLocks)+len(unclaimedLocks) > 1
+		for _, lock := range unclaimedLocks {
 			locks = append(locks, Lock{
-				Name:    pool,
+				Name:    lockName(pool, lock, multipleLocks),
 				Claimed: false,
 			})
 		}
-		if len(claimedLocks) == 1 && len(unclaimedLocks) == 0 {
+		for _, lock := range claimedLocks {
 			author, date, message, err := l.gitRepo.LatestCommit(pool)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get latest commit")
 			}
 			locks = append(locks, Lock{
-				Name:    pool,
+				Name:    lockName(pool, lock, multipleLocks),
 				Claimed: true,
 				Owner:   author,
 				Date:    date,
@@ -191,4 +200,11 @@ func (l *locker) Status() ([]Lock, error) {
 	}
 
 	return locks, nil
+}
+
+func lockName(pool, lock string, multipleLocks bool) string {
+	if multipleLocks {
+		return fmt.Sprintf("%s/%s", pool, lock)
+	}
+	return pool
 }
