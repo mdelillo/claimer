@@ -60,6 +60,9 @@ func (c *client) handleEvents(websocketUrl, botId string, messageHandler func(st
 			return errors.Wrap(err, "failed to receive event")
 		}
 
+		c.logger.WithFields(logrus.Fields{
+			"length": len(data),
+		}).Debug("Received message from web socket")
 		if err := c.handleEvent(data, botId, messageHandler); err != nil {
 			return err
 		}
@@ -84,6 +87,7 @@ func (c *client) handleEvent(data []byte, botId string, messageHandler func(stri
 			if err != nil {
 				return errors.Wrap(err, "failed to get username")
 			}
+			c.logger.Debug("Handling message")
 			messageHandler(message.Text, message.Channel, username)
 		}
 	}

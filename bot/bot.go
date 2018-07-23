@@ -45,6 +45,12 @@ func (c *bot) Run() error {
 		if len(splitText) > 2 {
 			args = splitText[2]
 		}
+
+		c.logger.WithFields(logrus.Fields{
+			"command":  cmd,
+			"args":     args,
+			"username": username,
+		}).Debug("Running command")
 		slackResponse, err := c.commandFactory.NewCommand(cmd, args, username).Execute()
 		if err != nil {
 			c.logger.WithFields(logrus.Fields{
@@ -54,6 +60,10 @@ func (c *bot) Run() error {
 				"username": username,
 			}).Error("failed to execute command")
 		}
+
+		c.logger.WithFields(logrus.Fields{
+			"response": slackResponse,
+		}).Debug("Received response to command")
 		if slackResponse != "" {
 			if err := c.slackClient.PostMessage(channel, slackResponse); err != nil {
 				c.logger.Errorf("failed to post to slack: %s", err)

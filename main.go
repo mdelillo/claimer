@@ -41,6 +41,14 @@ func main() {
 	logger.Out = os.Stdout
 	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
 
+	if logLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		var err error
+		logger.Level, err = logrus.ParseLevel(logLevel)
+		if err != nil {
+			fmt.Printf("Error parsing log level: %s\n", err.Error())
+		}
+	}
+
 	gitDir, err := ioutil.TempDir("", "claimer-git-repo")
 	if err != nil {
 		fmt.Printf("Error creating temp directory: %s\n", err)
