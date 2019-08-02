@@ -3,8 +3,8 @@ package bot
 import (
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/bot/commands"
+	"github.com/sirupsen/logrus"
 )
 
 //go:generate counterfeiter . commandFactory

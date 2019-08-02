@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/slack/requests"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
 

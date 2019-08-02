@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
-	logrustest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/mdelillo/claimer/bot/botfakes"
 	"github.com/mdelillo/claimer/bot/commands/commandsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	logrustest "github.com/sirupsen/logrus/hooks/test"
 )
 
 var _ = Describe("Bot", func() {

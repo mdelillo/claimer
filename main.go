@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/mdelillo/claimer/bot"
 	"github.com/mdelillo/claimer/bot/commands"
 	"github.com/mdelillo/claimer/fs"
@@ -16,6 +15,7 @@ import (
 	"github.com/mdelillo/claimer/slack/requests"
 	"github.com/mdelillo/claimer/translate"
 	"github.com/mdelillo/claimer/translations"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {

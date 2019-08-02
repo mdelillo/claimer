@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http/httptest"
 
-	"github.com/Sirupsen/logrus"
-	logrustest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/mdelillo/claimer/slack/requests/requestsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	logrustest "github.com/sirupsen/logrus/hooks/test"
 	"golang.org/x/net/websocket"
 )
 
