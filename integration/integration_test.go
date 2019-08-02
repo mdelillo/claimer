@@ -58,7 +58,7 @@ var _ = Describe("Claimer", func() {
 		runCommand = func(command string) string {
 			message := fmt.Sprintf("<@%s> %s", botId, command)
 			postSlackMessage(message, channelId, userApiToken)
-			EventuallyWithOffset(1, func() string { return latestSlackMessage(channelId, apiToken) }, "10s").
+			EventuallyWithOffset(1, func() string { return latestSlackMessage(channelId, apiToken) }, "20s").
 				ShouldNot(Equal(message), fmt.Sprintf(`Did not get response from command "%s"`, command))
 			return latestSlackMessage(channelId, apiToken)
 		}
@@ -230,7 +230,7 @@ var _ = Describe("Claimer", func() {
 		})
 
 		It("responds with a message from the given translation file", func() {
-			translations := "help: {header: foo}"
+			translations := `help: {header: "foo\n"}`
 			Expect(ioutil.WriteFile(translationFilePath, []byte(translations), 0644)).To(Succeed())
 
 			startClaimer(translationFilePath)
