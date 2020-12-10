@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+go build -o claimer main.go
+./claimer \
+  -apiToken "${CLAIMER_TEST_API_TOKEN}" \
+  -channelId "${CLAIMER_TEST_CHANNEL_ID}" \
+  -deployKey "${CLAIMER_TEST_DEPLOY_KEY}" \
+  -repoUrl "${CLAIMER_TEST_REPO_URL}"
